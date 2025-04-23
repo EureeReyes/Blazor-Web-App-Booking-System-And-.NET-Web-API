@@ -1,0 +1,201 @@
+@page "/inventory"
+@rendermode InteractiveServer
+@inject ToastService ToastService
+@inject ApiComm ApiComm
+@inject NavigationManager Navigation
+@using BlazorBootstrap.Components
+
+<PageTitle>Inventory</PageTitle>
+
+<h1>Inventory</h1>
+<Grid TItem="Inventories"
+    AllowSorting="true"
+    AllowPaging="true"
+    PageSize="7"
+    Data="@inventories"
+    HeaderRowCssClass="bg-primary text-white border-bottom-0"
+    Responsive="true"
+    Class="table table-hover custom-grid table-striped"
+    SelectionMode="GridSelectionMode.Multiple"
+    AllowSelection="true"
+    TextNoWrap="true">
+    <GridColumns>
+        <GridColumn TItem="Inventories" HeaderText="Code" Context="inv" TextNoWrap="true" Style="width: 150px;">
+            @($"{inv.ItemCode}-{inv.POrderNum}-{inv.InventoryCode}")
+        </GridColumn>
+        <GridColumn TItem="Inventories" HeaderText="UoM" SortKeySelector="inv => inv.UoMId" Context="inv" Style="width: 100px;">
+            @(GetUoMCode(inv.UoMId))
+        </GridColumn>
+        <GridColumn TItem="Inventories" HeaderText="Description" Context="inv" TextNoWrap="true" Style="width: 250px;">
+            <div @ondblclick="() => StartEditing(inv)" style="cursor: pointer;">
+                @if (editingInventory?.InventoryCode == inv.InventoryCode)
+                {
+                    <InputText @bind-Value="editingDescription"
+                            @onkeydown="HandleKeyPress"
+                            class="form-control edit-input"
+                            style="width: 100%;" 
+                            autofocus />
+                }
+                else
+                {
+                    <span style="@(string.IsNullOrEmpty(inv.Description) ? "opacity: 0.5;" : "")">
+                        @(string.IsNullOrEmpty(inv.Description) ? "(No Description)" : inv.Description)
+                    </span>
+                }
+            </div>
+        </GridColumn>
+        <GridColumn TItem="Inventories" HeaderText="Status" SortKeySelector="inv => inv.Status" Context="inv" TextNoWrap="true" Style="width: 180px;">
+            <div>
+                @if (editingInventory?.InventoryCode == inv.InventoryCode)
+                {
+                    <select @bind="editingInventory.Status" class="form-select edit-dropdown" style="width: 100%;" @onblur="UpdateStatus">
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                        <option value="For Repair">For Repair</option>
+                        <option value="Sold">Sold</option>
+                        <option value="Disposed">Disposed</option>
+                    </select>
+                }
+                else
+                {
+                    <span @ondblclick="() => StartEditing(inv)">@inv.Status</span>
+                }
+            </div>
+        </GridColumn>
+        <GridColumn TItem="Inventories" HeaderText="Qty" SortKeySelector="inv => inv.Quantity" Context="inv" TextNoWrap="true" Style="width: 100px;">
+            @inv.Quantity
+        </GridColumn>
+        <GridColumn TItem="Inventories" HeaderText="Booking State" Context="inv" Style="width: 120px;">
+            @inv.BookingState
+        </GridColumn>
+        <GridColumn TItem="Inventories" HeaderText="Reserved" Context="inv" Style="width: 100px;">
+            @(inv.Reserved == 1 ? "Yes" : "No")
+        </GridColumn>
+    </GridColumns>
+</Grid>
+
+
+
+
+@code {
+    private List<Inventories> inventories = new();
+    private List<Uoms> uoms = new();
+    private Inventories? editingInventory = null;
+    private string editingDescription = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        inventories = await ApiComm.GetInventoryAsync();
+        uoms = await ApiComm.GetUoMAsync();
+    }
+
+    private string GetUoMCode(int? uomId)
+    {
+        var uom = uoms.FirstOrDefault(u => u.UoMId == uomId);
+        return uom?.UoMCode ?? "N/A"; 
+    }
+
+private void StartEditing(Inventories inv)
+{
+
+    editingInventory = new Inventories
+    {
+        InventoryCode = inv.InventoryCode,
+        ItemCode = inv.ItemCode,
+        POrderNum = inv.POrderNum,
+        UoMId = inv.UoMId,
+        Description = inv.Description,
+        Status = inv.Status,
+        Quantity = inv.Quantity
+    };
+    editingDescription = inv.Description ?? "";
+
+    // Debugging: Print all values to the console
+    Console.WriteLine($"Editing Inventory:");
+    Console.WriteLine($"InventoryCode: {editingInventory.InventoryCode}");
+    Console.WriteLine($"ItemCode: {editingInventory.ItemCode}");
+    Console.WriteLine($"POrderNum: {editingInventory.POrderNum}");
+    Console.WriteLine($"UoMId: {editingInventory.UoMId}");
+    Console.WriteLine($"Description: {editingInventory.Description}");
+    Console.WriteLine($"Status: {editingInventory.Status}");
+    Console.WriteLine($"Quantity: {editingInventory.Quantity}");
+}
+
+private async Task HandleKeyPress(KeyboardEventArgs e)
+{
+    if (e.Key == "Enter" && editingInventory != null)
+    {
+        await Task.Delay(50); // Small delay to allow Blazor to update `editingDescription`
+        Console.WriteLine($"Before Update: {editingDescription}"); // Debug input
+
+        editingInventory.Description = editingDescription;
+        await UpdateDescription(editingInventory);
+        editingInventory = null; // Exit edit mode
+    }
+    else if (e.Key == "Escape")
+    {
+        Console.WriteLine("Editing canceled.");
+        editingInventory = null; // Cancel editing
+    }
+}
+private async Task UpdateDescription(Inventories inv)
+{
+    inv.Description = editingDescription;
+
+    // Debugging: Print confirmation before updating
+    Console.WriteLine($"Updating inventory {inv.InventoryCode} with new description: {inv.Description}");
+
+    await ApiComm.UpdateInventoryAsync(inv);
+    var index = inventories.FindIndex(i => i.InventoryCode == inv.InventoryCode);
+    if (index >= 0)
+    {
+        inventories[index].Description = inv.Description;
+        Console.WriteLine($"Inventory {inv.InventoryCode} updated successfully.");
+        StateHasChanged(); // Force UI update
+    }
+}
+private void ExitEditMode(FocusEventArgs e)
+{
+    Console.WriteLine("Exited edit mode.");
+    editingInventory = null; // Reset editing state
+}
+private async Task HandleStatusChange(ChangeEventArgs e)
+{
+    if (editingInventory != null)
+    {
+        editingInventory.Status = e.Value?.ToString(); // Update the status
+
+        Console.WriteLine($"Updating status to: {editingInventory.Status}"); // Debugging
+
+        await UpdateStatus(); // Call UpdateStatus WITHOUT arguments
+        editingInventory = null; // Exit edit mode
+    }
+}
+
+
+private async Task UpdateStatus()
+{
+    if (editingInventory != null)
+    {
+        Console.WriteLine($"Updating inventory {editingInventory.InventoryCode} with new status: {editingInventory.Status}");
+
+        // Call API to save changes
+        await ApiComm.UpdateInventoryAsync(editingInventory);
+
+        // Update the local inventory list
+        var index = inventories.FindIndex(i => i.InventoryCode == editingInventory.InventoryCode);
+        if (index >= 0)
+        {
+            inventories[index].Status = editingInventory.Status;
+            Console.WriteLine($"Inventory {editingInventory.InventoryCode} status updated successfully.");
+        }
+
+        // Force UI refresh
+        StateHasChanged();
+    }
+}
+
+
+
+
+}

@@ -1,0 +1,810 @@
+@page "/itemMaster"
+@rendermode InteractiveServer
+@inject ToastService ToastService
+@inject ApiComm ApiComm
+@inject NavigationManager Navigation
+@using BlazorBootstrap.Components
+
+
+
+<PageTitle>Item Master</PageTitle>
+@if (ItemMasters == null) {
+    <PlaceholderContainer Animation="PlaceholderAnimation.Glow">
+    <Placeholder Width="PlaceholderWidth.Col12" style="height: 50px; width: 25%;" />
+</PlaceholderContainer>
+}else{
+<div class="d-flex justify-content-between align-items-center mb-2">
+    <h1>Item Master</h1>
+    <div class="d-flex align-items-center">
+        @if (ItemMasters != null)
+        {
+            <Button Color="ButtonColor.Danger"
+                    @onclick="OnShowItemsMasterDeleteModalClick" 
+                    Class="me-2"
+                    Hidden="@(ItemsMasterSet.Count == 0)">
+                Delete @(ItemsMasterSet.Count > 1 ? $"({ItemsMasterSet.Count})" : "")
+            </Button>
+        }
+        <Button Color="ButtonColor.Dark" @onclick="OnShowModalClick" Class="me-2">Create Item Master</Button>
+        <Button Color="ButtonColor.Dark" @onclick="OnShowUoMClick">Unit of Measurements</Button>
+    </div>
+</div>}
+
+<!--------------------------------------------------------------------------------------------!>
+
+<!--Add Item Modal (Pop-up)-->
+
+<Modal @ref="Modal" Title="Item Master Creation" Size="ModalSize.Large">
+    <BodyTemplate>
+        <EditForm EditContext="@editContext" OnValidSubmit="AddItemMaster">
+            <DataAnnotationsValidator />
+
+            @* <div class="form-group row mb-3">
+                <label class="col-md-3 col-form-label">Item Code: <span class="text-danger">*</span></label>
+                <div class="col-md-9">
+                    <TextInput @bind-Value="newItemsMaster.ItemCode" Placeholder="Enter item code" />
+                    <ValidationMessage For="@(() => newItemsMaster.ItemCode)" />
+                </div>
+            </div> *@
+
+            <div class="form-group row mb-1">
+                <label class="col-md-2 col-form-label">Item Name: <span class="text-danger">*</span></label>
+                <div class="col-md-6">
+                    <TextInput @bind-Value="newItemsMaster.ItemName" Placeholder="Enter item name" class="form-control" />
+                    <ValidationMessage For="@(() => newItemsMaster.ItemName)" />
+                </div>
+                
+                <label class="col-md-1 col-form-label" style="white-space: nowrap;">UoM: <span class="text-danger">*</span></label>
+                <div class="col-md-3">
+                    <AutoComplete TItem="Uoms"
+                        @bind-Value="selectedUomCode"
+                        DataProvider="UoMDataProvider"
+                        PropertyName="UoMCode"
+                        Placeholder="Search UoM..."
+                        OnChanged="OnUoMAutoCompleteChanged"
+                        class="form-control" />
+                    <ValidationMessage For="@(() => newItemsMaster.UoMId)" />
+                </div>
+            </div>
+
+            <div class="form-group row mb-2">
+                <label class="col-md-2 col-form-label">Description: <span class="text-danger">*</span></label>
+                <div class="col-md-10">
+                    <TextInput @bind-Value="newItemsMaster.Description" Placeholder="Enter item description" class="form-control" />
+                    <ValidationMessage For="@(() => newItemsMaster.Description)" />
+                </div>
+            </div>
+            
+            <div class="row modal-footer p-2">
+                <div class="col-md-12 text-right">
+                    <Button Type="ButtonType.Submit" Color="ButtonColor.Dark" Class="float-end" Disabled="@isLoading">
+                        @(isLoading ? "Submitting..." : "Submit")
+                    </Button>
+                    <Button Type="ButtonType.Button" Color="ButtonColor.Dark" Class="float-end me-2" @onclick="ResetForm">Reset</Button>
+                    <Button Color="ButtonColor.Danger" @onclick="OnHideModalClick" Class="float-end me-2">Close</Button>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(successMessage))
+            {
+                <div class="alert alert-success mt-3">@successMessage</div>
+            }
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger mt-3">@errorMessage</div>
+            }
+        </EditForm>
+    </BodyTemplate>
+</Modal>
+
+<!--------------------------------------------------------------------------------------------!>
+<Modal @ref="UoMModal" Title="Unit of Measurement Creation" Size="ModalSize.Large">
+    <BodyTemplate>
+        <EditForm EditContext="@UoMeditContext" OnValidSubmit="AddUoM">
+            <DataAnnotationsValidator />
+            <div class="container mb-3">
+                <div class="row">
+                    <div class="col-md-4">
+                        <label class="col-form-label">UoM Code: <span class="text-danger">*</span></label>
+                        <TextInput class="form-control" @bind-Value="newUoms.UoMCode" Placeholder="Enter UoM Code" />
+                        <ValidationMessage For="@(() => newUoms.UoMCode)" />
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="col-form-label">UoM Name:<span class="text-danger">*</span></label>
+                        <TextInput class="form-control" @bind-Value="newUoms.UoMName" Placeholder="Enter UoM Name" />
+                        <ValidationMessage For="@(() => newUoms.UoMName)" />
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="col-form-label">Base Quantity:<span class="text-danger">*</span></label>
+                        <InputNumber class="form-control" @bind-Value="newUoms.BaseQuantity" Placeholder="Enter Base Quantity" />
+                        <ValidationMessage For="@(() => newUoms.BaseQuantity)" />
+                    </div>
+                </div>
+            </div>
+
+        <hr />
+
+        <Grid TItem="Uoms"
+            AllowSorting="true"
+            AllowPaging="true"
+            PageSize="3"
+            Data="@uoms"
+            HeaderRowCssClass="bg-primary text-white border-bottom-0"
+            Responsive="true"
+            Class="table table-hover custom-grid table-striped"
+            SelectionMode="GridSelectionMode.Multiple"
+            AllowSelection="true">
+            <GridColumns>
+                <GridColumn TItem="Uoms" HeaderText="UoM Code" SortKeySelector="uom => uom.UoMCode" Context="uom">
+                    @uom.UoMCode
+                </GridColumn>
+                <GridColumn TItem="Uoms" HeaderText="UoM Name" SortKeySelector="uom => uom.UoMName" Context="uom">
+                    @uom.UoMName
+                </GridColumn>
+                <GridColumn TItem="Uoms" HeaderText="Base Qty" SortKeySelector="uom => uom.BaseQuantity" Context="uom">
+                    @uom.BaseQuantity
+                </GridColumn>
+                @* <GridColumn TItem="Uoms" HeaderText="Edit" Context="uom">
+                <Tooltip Class="me-4" Title="Edit Item">
+                    <Icon Name="IconName.PencilSquare" class="fs-6" style="cursor: pointer;" @onclick="() => OpenOffcanvas(uom)" />
+                </Tooltip>
+                </GridColumn> *@
+            </GridColumns>
+        </Grid>
+
+            <div class="row mb-3">
+                <div class="col-md-12 text-right">
+                    <Button Type="ButtonType.Submit" Color="ButtonColor.Dark" Class="float-end" Disabled="@isLoading">
+                        @(isLoading ? "Submitting..." : "Submit")
+                    </Button>
+                    <Button Type="ButtonType.Button" Color="ButtonColor.Dark" Class="float-end me-2" @onclick="ResetForm">Reset</Button>
+                    <Button Color="ButtonColor.Danger" @onclick="OnHideUoMClick" Class="float-end me-2">Close</Button>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(successMessage))
+            {
+                <div class="alert alert-success mt-3">@successMessage</div>
+            }
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger mt-3">@errorMessage</div>
+            }
+        </EditForm>
+
+
+    </BodyTemplate>
+</Modal>
+
+
+<!--------------------------------------------------------------------------------------------!>
+
+<Modal @ref="SupplierModal" Title="Add Supplier" Size="ModalSize.Large">
+    <BodyTemplate>
+        <EditForm EditContext="@editContext" OnValidSubmit="AddItemMaster">
+            <DataAnnotationsValidator />
+
+            <div class="form-group row mb-3">
+                <label class="col-md-3 col-form-label">Supplier ID: <span class="text-danger">*</span></label>
+                <div class="col-md-9">
+                    <TextInput @bind-Value="newItemsMaster.ItemName" Placeholder="Enter item name" />//----- CHANGE
+                    <ValidationMessage For="@(() => newItemsMaster.ItemName)" />//----- CHANGE
+                </div>
+            </div>
+
+            <div class="form-group row mb-3">
+                <label class="col-md-3 col-form-label">Supplier Name: <span class="text-danger">*</span></label>
+                <div class="col-md-9">
+                    <TextInput @bind-Value="newItemsMaster.ItemName" Placeholder="Enter item name" />//----- CHANGE
+                    <ValidationMessage For="@(() => newItemsMaster.ItemName)" />//----- CHANGE
+                </div>
+            </div>
+
+            <div class="form-group row mb-3">
+                <label class="col-md-3 col-form-label">Supplier Address: <span class="text-danger">*</span></label>
+                <div class="col-md-9">
+                    <TextInput @bind-Value="newItemsMaster.ItemName" Placeholder="Enter item name" />//----- CHANGE
+                    <ValidationMessage For="@(() => newItemsMaster.ItemName)" />//----- CHANGE
+                </div>
+            </div>
+
+            <div class="form-group row mb-3">
+                <label class="col-md-3 col-form-label">Supplier Contact No.: <span class="text-danger">*</span></label>
+                <div class="col-md-9">
+                    <TextInput @bind-Value="newItemsMaster.ItemName" Placeholder="Enter item name" />//----- CHANGE
+                    <ValidationMessage For="@(() => newItemsMaster.ItemName)" />//----- CHANGE
+                </div>
+            </div>
+
+            <div class="form-group row mb-3">
+                <label class="col-md-3 col-form-label">Supplier Email: <span class="text-danger">*</span></label>
+                <div class="col-md-9">
+                    <TextInput @bind-Value="newItemsMaster.ItemName" Placeholder="Enter item name" />//----- CHANGE
+                    <ValidationMessage For="@(() => newItemsMaster.ItemName)" />//----- CHANGE
+                </div>
+            </div>
+
+            <div class="form-group row mb-3">
+                <label class="col-md-3 col-form-label">Industry: <span class="text-danger">*</span></label>
+                <div class="col-md-9">
+                    <TextInput @bind-Value="newItemsMaster.ItemName" Placeholder="Enter item name" />//----- CHANGE
+                    <ValidationMessage For="@(() => newItemsMaster.ItemName)" />//----- CHANGE
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-12 text-right">
+                    <Button Type="ButtonType.Submit" Color="ButtonColor.Primary" Class="float-end" Disabled="@isLoading">
+                        @(isLoading ? "Submitting..." : "Submit")
+                    </Button>
+                    <Button Type="ButtonType.Button" Color="ButtonColor.Secondary" Class="float-end me-2" @onclick="ResetForm">Reset</Button>
+                    <Button Color="ButtonColor.Secondary" @onclick="OnHideModalClick" Class="float-end me-2">Close</Button>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(successMessage))
+            {
+                <div class="alert alert-success mt-3">@successMessage</div>
+            }
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger mt-3">@errorMessage</div>
+            }
+        </EditForm>
+    </BodyTemplate>
+</Modal>
+
+<!--------------------------------------------------------------------------------------------!>
+
+
+
+<!--------------------------------------------------------------------------------------------!>
+<!-- Item Master Grid -->
+
+@if (ItemMasters == null)
+{
+    <PlaceholderContainer Animation="PlaceholderAnimation.Glow">
+        <Placeholder Width="PlaceholderWidth.Col12" style="height: 50px; margin-bottom: 10px;"/>
+        <Placeholder Width="PlaceholderWidth.Col12" style="height: 30px; margin-bottom: 10px;"/>
+        <Placeholder Width="PlaceholderWidth.Col12" style="height: 30px; margin-bottom: 10px;"/>
+        <Placeholder Width="PlaceholderWidth.Col12" style="height: 30px; margin-bottom: 10px;"/>
+        <Placeholder Width="PlaceholderWidth.Col12" style="height: 30px; margin-bottom: 10px;"/>
+        <Placeholder Width="PlaceholderWidth.Col12" style="height: 30px; margin-bottom: 10px;"/>
+    </PlaceholderContainer>
+
+}
+else
+{
+    <Grid TItem="ItemsMaster"
+        AllowSorting="true"
+        AllowPaging="true"
+        PageSize="7"
+        Data="@ItemMasters"
+        HeaderRowCssClass="bg-primary text-white border-bottom-0"
+        Responsive="true"
+        Class="table table-hover custom-grid table-striped"
+        SelectionMode="GridSelectionMode.Multiple"
+        SelectedItemsChanged="OnSelectedItemsChanged"
+        AllowSelection="true">
+        <GridColumns>
+            <GridColumn TItem="ItemsMaster" HeaderText="Item Code" SortKeySelector="im => im.ItemCode">
+                ITM@(context.ItemCode)
+            </GridColumn>
+
+            <GridColumn TItem="ItemsMaster" HeaderText="Item Name" SortKeySelector="im => im.ItemName" Context="im">
+                @im.ItemName
+            </GridColumn>
+            <GridColumn TItem="ItemsMaster" HeaderText="Description" SortKeySelector="im => im.Description" Context="im">
+                @im.Description
+            </GridColumn>
+            <GridColumn TItem="ItemsMaster" HeaderText="UoM" SortKeySelector="im => im.UoMId" Context="im">
+                @(GetUoMCode(im.UoMId))
+            </GridColumn>
+            <GridColumn TItem="ItemsMaster" HeaderText="Edit" Context="im">
+            <Tooltip Class="me-4" Title="Edit Item">
+                <Icon Name="IconName.PencilSquare" class="fs-6" style="cursor: pointer;" @onclick="() => OpenOffcanvas(im)" />
+            </Tooltip>
+            </GridColumn>
+
+            @code {
+                public string GetFormattedID(string itemCode, string prefix)
+            {
+                if (string.IsNullOrEmpty(itemCode)) return "";
+                return $"{prefix}{itemCode}";
+            }
+            }
+            </GridColumns>
+    </Grid>
+}
+
+@if (!string.IsNullOrEmpty(successMessage))
+{
+    <div class="alert alert-success mt-3">@successMessage</div>
+}
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger mt-3">@errorMessage</div>
+}
+
+<!-- Confirm Delete Modal for ItemsMaster -->
+<Modal @ref="deleteConfirmationModalItemsMaster" Title="Confirm Deletion" Size="ModalSize.Regular">
+    <BodyTemplate>
+        <p>Are you sure you want to delete the selected Item Master(s)?</p>
+    </BodyTemplate>
+    <FooterTemplate>
+        <Button Color="ButtonColor.Danger" @onclick="DeleteSelectedItemsMaster">Delete</Button>
+    </FooterTemplate>
+</Modal>
+
+<!--------------------------------------------------------------------------------------------!>
+<!-- Offcanvas -->
+<Offcanvas @ref="offcanvas" Title="Item Master Details">
+    <BodyTemplate>
+        <div>
+            <p class="mb-0"><strong>Item Code:</strong> @selectedItemCode</p>
+
+            <label class="mb-2">
+                <input type="checkbox" @bind="isEditingEnabled" />
+                Enable updates (Check to edit fields)
+            </label>
+
+            <p class="mb-0"><strong>Item Name:</strong></p>
+            
+            <InputText @bind-Value="selectedItemNameMaster" disabled=@(!isEditingEnabled) class="form-control mb-2" />
+
+            <p class="mb-0"><strong>Description:</strong></p>
+            <InputText @bind-Value="selectedDescription" disabled=@(!isEditingEnabled) class="form-control mb-2" />
+
+            <p class="mb-0"><strong>Unit:</strong></p>
+            <InputNumber @bind-Value="selectedUnit" disabled=@(!isEditingEnabled) class="form-control mb-2" />
+        </div>    
+    </BodyTemplate>
+
+    <FooterTemplate>
+        <div class="d-flex justify-content-end">
+            <Button class="float-end" Color="ButtonColor.Dark" @onclick="UpdateItemMaster" disabled=@(!isEditingEnabled)>Update Item</Button>
+        </div></FooterTemplate>
+</Offcanvas>
+
+
+<!--------------------------------------------------------------------------------------------!>
+<!--Confirm Item Delete Modal-->
+<Modal @ref="deleteConfirmationModal" Title="Confirm Deletion">
+    <BodyTemplate>
+        <p>Are you sure you want to delete this item?</p>
+    </BodyTemplate>
+
+    <FooterTemplate>
+        <Button Color="ButtonColor.Danger" @onclick="DeleteItem">Delete Item</Button>
+
+    </FooterTemplate>
+</Modal>
+
+
+<!-------------------------------------------------------------------------------------------->
+
+<!--Toast When Item is deleted-->
+<Toasts class="p-3" Messages="messages" AutoHide="true" StackLength="3" Placement="ToastsPlacement.TopRight" />
+
+<!-------------------------------------------------------------------------------------------->
+
+@code {
+    [Inject] ModalService ModalService { get; set; } = default!;
+
+//--------------------------------------------------------------------------------------------    
+
+    // Offcanvas, Delete Item, Confirm delete, Toast, OnRoleDoubleClick variables
+    private int selectedItemCode;
+    //--------------------------------------------------------------------------------------------
+    private Offcanvas offcanvas = default!;
+    private Modal deleteConfirmationModal = default!;
+    private Modal deleteConfirmationModalCat = default!;
+    //--------------------------------------------------------------------------------------------
+    private string? selectedUomCode;
+    private string selectedDescription = string.Empty;
+    private string selectedItemNameMaster = string.Empty;
+    //--------------------------------------------------------------------------------------------
+    private string selectedStatus = string.Empty;
+    private decimal? selectedPurchasePrice;
+    private int selectedUnit;
+    //--------------------------------------------------------------------------------------------
+    private string selectedItemImage = string.Empty; 
+    private DateOnly? selectedAcquisitionDate;
+    private bool isEditingEnabled = false;
+    //--------------------------------------------------------------------------------------------
+
+    @* Off canvas On row double click *@
+    private async Task OnRowDoubleClick(GridRowEventArgs<Items> args)
+    {
+        selectedItemCode = args.Item.ItemId;
+        selectedItemNameMaster = args.Item.ItemModel;
+        selectedDescription = args.Item.SupplierName;
+        selectedAcquisitionDate = args.Item.AcquisitionDate;
+        selectedStatus = args.Item.Status;
+        selectedPurchasePrice = args.Item.PurchasePrice;
+
+
+        if (args.Item.ItemImage != null && args.Item.ItemImage.Length > 0)
+        {
+            selectedItemImage = $"data:image/png;base64,{Convert.ToBase64String(args.Item.ItemImage)}";
+        }
+        else
+        {
+            selectedItemImage = string.Empty;
+        }
+
+        isEditingEnabled = false; // Disable editing when opening
+        await offcanvas.ShowAsync();
+    }
+//--------------------------------------------------------------------------------------------  
+    //For deleting item
+    private async Task ConfirmDelete()
+    {
+        await deleteConfirmationModal.ShowAsync();
+    }
+    private async Task DeleteItem()
+    {
+        if (selectedItemCode > 0)
+        {
+            string deletedItemName = selectedItemNameMaster; // Store name before deletion
+
+            bool success = await ApiComm.DeleteItemAsync(selectedItemCode);
+            if (success)
+            {
+                // Refresh the item list after deletion
+                items = await ApiComm.GetItemsAsync();
+                await offcanvas.HideAsync(); // Close the offcanvas
+
+                // Show toast notification with actual item name
+                ShowMessage(ToastType.Danger, deletedItemName);
+            }
+            else
+            {
+                Console.WriteLine("Failed to delete item");
+            }
+        }
+        await deleteConfirmationModal.HideAsync();
+    }
+//--------------------------------------------------------------------------------------------  
+    //For updating item
+    private async Task UpdateItemMaster()
+    {
+        var updatedItemMaster = new ItemsMaster
+        {
+            ItemCode = selectedItemCode,
+            ItemName = selectedItemNameMaster,
+            Description = selectedDescription,
+            UoMId = selectedUnit
+        };
+
+        bool success = await ApiComm.UpdateItemMastAsync(updatedItemMaster);
+        if (success)
+        {
+            ItemMasters = await ApiComm.GetItemMastAsync(); // Refresh item list
+            await offcanvas.HideAsync(); // Close the offcanvas
+            ShowMessage(ToastType.Success, $"{selectedItemNameMaster} updated successfully");
+        }
+        else
+        {
+            Console.WriteLine("Failed to update item");
+        }
+    }
+
+    private async Task OpenOffcanvas(ItemsMaster itemMaster)
+    {
+        selectedItemCode = itemMaster.ItemCode;
+        selectedItemNameMaster = itemMaster.ItemName;
+        selectedDescription = itemMaster.Description;
+        newItemsMaster.UoMId = itemMaster.UoMId; // Store ID
+
+        isEditingEnabled = false;
+
+        await offcanvas.ShowAsync();
+    }
+//--------------------------------------------------------------------------------------------  
+    @* For toast *@
+    List<ToastMessage> messages = new List<ToastMessage>();
+//--------------------------------------------------------------------------------------------  
+    @* Update and delete item toast *@
+    private async void ShowMessage(ToastType toastType, string itemName)
+    {
+        string title = toastType == ToastType.Success ? "Item Updated" : "Item Deleted";
+        string action = toastType == ToastType.Success ? "updated" : "deleted";
+
+        var toast = new ToastMessage
+        {
+            Type = toastType,
+            Title = title,
+            HelpText = $"{DateTime.Now}",
+            Message = $"You {action} the item '{itemName}' at {DateTime.Now}.",
+        };
+
+        messages.Add(toast);
+        StateHasChanged(); // Force UI update
+
+        // Remove toast after 5 seconds
+        await Task.Delay(6000);
+        messages.Remove(toast);
+        StateHasChanged(); // Update UI again to reflect removal
+    }
+
+//------------------------------------------------------------------------    
+
+    // Data and form, Add Item, pagination, resfresh page, open-close add item modal variables
+    
+    private List<Uoms> uoms = new();
+    private List<Items> items = new();
+    private List<Category> categories = new();
+    private List<ItemsMaster> ItemMasters = new();
+    private List<purchaseHeader> PurchaseHeaders = new();
+//--------------------------------------------------------------------------------------------
+    private Uoms newUoms = new();
+    private Items newItem = new();
+    private Category newCategory = new();
+    private ItemsMaster newItemsMaster = new();
+//--------------------------------------------------------------------------------------------
+    private EditContext? editContext;
+    private EditContext? UoMeditContext;
+    private EditContext? categoryEditContext;
+//--------------------------------------------------------------------------------------------
+    private string successMessage = "";
+    private string errorMessage = "";
+    private bool isLoading = false;
+//--------------------------------------------------------------------------------------------    
+    private Modal Modal = default!;
+    private Modal UoMModal = default!;
+    private Modal CatsModal = default!;
+    private Modal deleteConfirmationModalItemsMaster = default!;
+    private Modal SupplierModal = default!;
+
+    //Load items table
+    protected override async Task OnInitializedAsync()
+    {
+        // Load items once.
+        ItemMasters = null; // Ensures "Loading..." appears
+        StateHasChanged(); // Forces UI to update immediately
+
+        ItemMasters = await ApiComm.GetItemMastAsync();
+        categories = await ApiComm.GetCatsAsync();
+        uoms = await ApiComm.GetUoMAsync();
+
+        editContext = new EditContext(newItemsMaster);
+        categoryEditContext = new EditContext(newCategory);
+        UoMeditContext = new EditContext(newUoms);
+
+
+    }
+
+//--------------------------------------------------------------------------------------------  
+    //For adding item
+private async Task AddItemMaster()
+{
+    // Clear any previous messages.
+    successMessage = "";
+    errorMessage = "";
+    isLoading = true;
+
+    bool overallSuccess = true;
+
+    // 🔹 Ensure UoMId is correctly set before submitting
+    var selectedUoM = (await ApiComm.GetUoMAsync()).FirstOrDefault(u => u.UoMCode == selectedUomCode);
+    if (selectedUoM != null)
+    {
+        newItemsMaster.UoMId = selectedUoM.UoMId; // Assign correct ID
+    }
+
+    // For ItemsMaster, we post just one record.
+    bool success = await ApiComm.AddItemMastAsync(newItemsMaster);
+    Console.WriteLine($"data here {newItemsMaster.ItemName}");
+    if (!success)
+    {
+        overallSuccess = false;
+        Console.WriteLine($"data here {newItemsMaster.ItemCode}");
+    }
+
+    if (overallSuccess)
+    {
+        // Display a success message using the ItemName.
+        ShowAddMessage(newItemsMaster.ItemName);
+
+        // Reset newItemsMaster and its EditContext.
+        newItemsMaster = new ItemsMaster();
+        editContext = new EditContext(newItemsMaster);
+
+        // Refresh the list of ItemMasters.
+        ItemMasters = await ApiComm.GetItemMastAsync();
+    }
+
+    isLoading = false;
+}
+
+//--------------------------------------------------------------------------------------------  
+private async Task AddUoM()
+{
+        Console.WriteLine("🔥 AddUoM() Triggered! 🔥");
+    successMessage = "";
+    errorMessage = "";
+    isLoading = true;
+
+    try
+    {
+        bool success = await ApiComm.AddUoMAAsync(newUoms);
+        if (success)
+        {
+            Console.WriteLine("asdadsa");
+            ShowAddUoMMessage(newUoms.UoMCode); 
+            newUoms = new Uoms(); // Reset UoM model
+            UoMeditContext = new EditContext(newUoms); // Reset form validation
+            uoms = await ApiComm.GetUoMAsync(); // Refresh the UoM list
+        }
+        else
+        {
+                        Console.WriteLine("xxx");
+            errorMessage = "Failed to add UoM.";
+        }
+    }
+    catch (Exception ex)
+    {
+        errorMessage = $"Error: {ex.Message}";
+    }
+
+    isLoading = false;
+}
+
+//--------------------------------------------------------------------------------------------  
+    //Toast for add item
+    private async void ShowAddMessage(string itemName)
+    {
+        var toast = new ToastMessage
+        {
+            Type = ToastType.Success,
+            Title = "Item Added",
+            HelpText = $"{DateTime.Now}",
+            Message = $"You added '{itemName}'  at {DateTime.Now}.",
+        };
+
+        messages.Add(toast);
+        StateHasChanged();
+
+        // Remove the toast after 6 seconds
+        await Task.Delay(6000);
+        messages.Remove(toast);
+        StateHasChanged();
+    }
+//--------------------------------------------------------------------------------------------  
+    private async void ShowAddUoMMessage(string UoMCode)
+    {
+        var toast = new ToastMessage
+        {
+            Type = ToastType.Success,
+            Title = "UoM Added",
+            HelpText = $"{DateTime.Now}",
+            Message = $"You added '{UoMCode}'  at {DateTime.Now}.",
+        };
+
+        messages.Add(toast);
+        StateHasChanged();
+
+        // Remove the toast after 6 seconds
+        await Task.Delay(6000);
+        messages.Remove(toast);
+        StateHasChanged();
+    }
+//--------------------------------------------------------------------------------------------  
+    //For resetting the add item form
+    private void ResetForm()
+    {
+        newItem = new Items();
+        categoryEditContext = new EditContext(newCategory);
+        newItemsMaster = new ItemsMaster();
+        editContext = new EditContext(newItemsMaster);
+        successMessage = "";
+    }
+
+//--------------------------------------------------------------------------------------------  
+    //For showing and hiding modal
+    private async Task OnShowModalClick()
+    {
+        await Modal.ShowAsync();
+    }
+
+    private async Task OnHideModalClick()
+    {
+        await Modal.HideAsync();
+    }
+
+//--------------------------------------------------------------------------------------------  
+    private async Task OnShowItemMasterDeleteModalClick()
+    {
+        await deleteConfirmationModalItemsMaster.ShowAsync();
+    }
+
+    private async Task OnHideItemMasterDeleteModalClick()
+    {
+        await deleteConfirmationModalItemsMaster.HideAsync();
+    }
+//--------------------------------------------------------------------------------------------  
+    private async Task OnShowUoMClick()
+    {
+        await UoMModal.ShowAsync();
+    }
+
+    private async Task OnHideUoMClick()
+    {
+        await UoMModal.HideAsync();
+    }
+//--------------------------------------------------------------------------------------------
+
+private string GetUoMCode(int? uomId)
+{
+    var uom = uoms.FirstOrDefault(u => u.UoMId == uomId);
+    return uom?.UoMCode ?? "N/A"; 
+}
+
+//--------------------------------------------------------------------------------------------  
+
+private async Task<AutoCompleteDataProviderResult<Uoms>> UoMDataProvider(AutoCompleteDataProviderRequest<Uoms> request)
+{
+    var uoms = await ApiComm.GetUoMAsync(); // Fetch UoMs from API
+    return await Task.FromResult(request.ApplyTo(uoms.OrderBy(u => u.UoMCode)));
+}
+
+private void OnUoMAutoCompleteChanged(Uoms uom)
+{
+    if (uom != null)
+    {
+        selectedUomCode = uom.UoMCode; // Show UoMCode in dropdown
+        newItemsMaster.UoMId = uom.UoMId; // Store ID for API submission
+
+
+    }
+}
+
+//--------------------------------------------------------------------------------------------
+
+    // HashSet for tracking selected ItemMasters.
+    private HashSet<ItemsMaster> ItemsMasterSet = new();
+       // Called when the grid selection changes.
+    private Task OnSelectedItemsChanged(HashSet<ItemsMaster> selectedItems)
+    {
+        ItemsMasterSet = selectedItems;
+        return Task.CompletedTask;
+    }
+
+    // Show the confirmation modal for deletion.
+    private async Task OnShowItemsMasterDeleteModalClick()
+    {
+        await deleteConfirmationModalItemsMaster.ShowAsync();
+    }
+
+    // Delete all selected ItemMasters.
+    private async Task DeleteSelectedItemsMaster()
+    {
+        foreach (var item in ItemsMasterSet.ToList())
+        {
+            bool success = await ApiComm.DeleteItemMastAsync(item.ItemCode);
+            if (success)
+            {
+                // Optionally remove from UI list immediately.
+                ItemMasters.RemoveAll(im => im.ItemCode == item.ItemCode);
+            }
+            else
+            {
+                errorMessage = $"Failed to delete Item Master with ID {item.ItemCode}.";
+                // Optionally break or continue based on your error strategy.
+            }
+        }
+
+        // Refresh the list.
+        ItemMasters = await ApiComm.GetItemMastAsync();
+        // Clear the selection.
+        ItemsMasterSet.Clear();
+        await deleteConfirmationModalItemsMaster.HideAsync();
+    }
+}
+<!---More code here--->

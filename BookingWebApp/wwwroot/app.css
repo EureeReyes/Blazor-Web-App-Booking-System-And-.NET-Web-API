@@ -1,0 +1,392 @@
+@font-face {
+    font-family: 'DefaultFont';
+    src: url('/Fonts/CreatoDisplay-Bold.otf') format('otf');
+    font-weight: normal;
+    font-style: normal;
+}
+
+.details-wrapper {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.5s ease;
+}
+
+.details-wrapper.show {
+    max-height: 1000px; /* Big enough to hold your longest content */
+}
+
+
+html, body {
+    font-family: 'DefaultFont', sans-serif !important; 
+}
+
+
+.pdf-icon-wrapper {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    text-align: center;
+    line-height: 40px;
+    border-radius: 50%;
+    transition: background-color 0.3s ease;
+    cursor: pointer;
+}
+
+.pdf-icon-wrapper:hover {
+    background-color: #f8d7da; /* darker background on hover */
+}
+
+.pdf-icon-wrapper:hover .icon-inside {
+    color: red; /* icon turns red on hover */
+}
+
+.icon-inside {
+    color: black; /* default icon color */
+    transition: color 0.3s ease;
+}
+
+
+a, .btn-link {
+    color: #006bb7;
+}
+
+.btn-primary {
+    color: #fff;
+    background-color: #1b6ec2;
+    border-color: #1861ac;
+}
+
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+}
+
+
+.content {
+    padding-top: 1.1rem;
+}
+
+h1:focus {
+    outline: none;
+}
+
+.valid.modified:not([type=checkbox]) {
+    outline: 1px solid #26b050;
+}
+
+.invalid {
+    outline: 1px solid #e50000;
+}
+
+.validation-message {
+    color: #e50000;
+}
+.a:hover{
+    color: #006bb7 !important;
+}
+
+.bi-list {
+    color: white !important;
+    transition: transform 0.3s ease !important;
+}
+
+.bb-sidebar-top-row{
+    background-color: #212529 !important;
+    border-bottom: 1px solid #212529 !important;
+    border-right: 1px solid #212529 !important;
+}
+
+.bb-top-row {
+    background-color: #212529 !important;
+    height: 57px !important;
+}
+
+.bb-sidebar {
+    background-color: #343a40 !important;
+    transition: width 0.3s ease, transform 0.3s ease !important;
+}
+
+.bb-sidebar nav .nav-item a {
+    color: white !important;
+    transition: background-color 0.3s ease, color 0.3s ease !important;
+    white-space: nowrap !important;
+}
+
+.bb-sidebar nav .nav-item a:hover{
+    background-color: rgba(255, 255, 255, 0.158) !important;
+    color: white !important;
+    border-radius: 0px !important;
+}
+
+.bb-sidebar nav .nav-item a.active{
+    color: #212529 !important;
+    background-color: white !important;
+    transition: background-color 0.3s ease, color 0.3s ease !important;
+}
+
+.active>.page-link, .page-link.active {
+    color: #212529 !important;
+    background-color: #21252917 !important;
+    margin-left: 3px !important;
+    margin-right: 3px !important;
+}
+
+li {
+    margin-left: 1px !important;
+    margin-right: 1px !important;
+}
+
+.offcanvas-footer{
+    display: block !important;
+}
+
+.blazor-error-boundary {
+    background: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTYiIGhlaWdodD0iNDkiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIG92ZXJmbG93PSJoaWRkZW4iPjxkZWZzPjxjbGlwUGF0aCBpZD0iY2xpcDAiPjxyZWN0IHg9IjIzNSIgeT0iNTEiIHdpZHRoPSI1NiIgaGVpZ2h0PSI0OSIvPjwvY2xpcFBhdGg+PC9kZWZzPjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMCkiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0yMzUgLTUxKSI+PHBhdGggZD0iTTI2My41MDYgNTFDMjY0LjcxNyA1MSAyNjUuODEzIDUxLjQ4MzcgMjY2LjYwNiA1Mi4yNjU4TDI2Ny4wNTIgNTIuNzk4NyAyNjcuNTM5IDUzLjYyODMgMjkwLjE4NSA5Mi4xODMxIDI5MC41NDUgOTIuNzk1IDI5MC42NTYgOTIuOTk2QzI5MC44NzcgOTMuNTEzIDI5MSA5NC4wODE1IDI5MSA5NC42NzgyIDI5MSA5Ny4wNjUxIDI4OS4wMzggOTkgMjg2LjYxNyA5OUwyNDAuMzgzIDk5QzIzNy45NjMgOTkgMjM2IDk3LjA2NTEgMjM2IDk0LjY3ODIgMjM2IDk0LjM3OTkgMjM2LjAzMSA5NC4wODg2IDIzNi4wODkgOTMuODA3MkwyMzYuMzM4IDkzLjAxNjIgMjM2Ljg1OCA5Mi4xMzE0IDI1OS40NzMgNTMuNjI5NCAyNTkuOTYxIDUyLjc5ODUgMjYwLjQwNyA1Mi4yNjU4QzI2MS4yIDUxLjQ4MzcgMjYyLjI5NiA1MSAyNjMuNTA2IDUxWk0yNjMuNTg2IDY2LjAxODNDMjYwLjczNyA2Ni4wMTgzIDI1OS4zMTMgNjcuMTI0NSAyNTkuMzEzIDY5LjMzNyAyNTkuMzEzIDY5LjYxMDIgMjU5LjMzMiA2OS44NjA4IDI1OS4zNzEgNzAuMDg4N0wyNjEuNzk1IDg0LjAxNjEgMjY1LjM4IDg0LjAxNjEgMjY3LjgyMSA2OS43NDc1QzI2Ny44NiA2OS43MzA5IDI2Ny44NzkgNjkuNTg3NyAyNjcuODc5IDY5LjMxNzkgMjY3Ljg3OSA2Ny4xMTgyIDI2Ni40NDggNjYuMDE4MyAyNjMuNTg2IDY2LjAxODNaTTI2My41NzYgODYuMDU0N0MyNjEuMDQ5IDg2LjA1NDcgMjU5Ljc4NiA4Ny4zMDA1IDI1OS43ODYgODkuNzkyMSAyNTkuNzg2IDkyLjI4MzcgMjYxLjA0OSA5My41Mjk1IDI2My41NzYgOTMuNTI5NSAyNjYuMTE2IDkzLjUyOTUgMjY3LjM4NyA5Mi4yODM3IDI2Ny4zODcgODkuNzkyMSAyNjcuMzg3IDg3LjMwMDUgMjY2LjExNiA4Ni4wNTQ3IDI2My41NzYgODYuMDU0N1oiIGZpbGw9IiNGRkU1MDAiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjwvZz48L3N2Zz4=) no-repeat 1rem/1.8rem, #b32121;
+    padding: 1rem 1rem 1rem 3.7rem;
+    color: white;
+}
+
+    .blazor-error-boundary::after {
+        content: "An error has occurred."
+    }
+
+.darker-border-checkbox.form-check-input {
+    border-color: #929292;
+}
+
+.valid.modified:not([type=checkbox]) {
+    outline: 1px solid #26b050;
+}
+
+.invalid {
+    outline: 1px solid red;
+}
+
+.validation-message {
+    color: red;
+}
+
+.rounded-grid {
+    border-radius: 10px; /* Adjust the radius as needed */
+    overflow: hidden; /* Ensures the corners are rounded properly */
+}
+
+.rounded-grid table {
+    border-collapse: separate; /* Allows rounded corners */
+    border-spacing: 0; /* Removes spacing between cells */
+    border-radius: 10px; /* Rounds the table corners */
+    overflow: hidden; /* Ensures the corners are rounded properly */
+}
+table th {
+    background-color: #212529 !important;
+    
+}
+
+.rounded-grid th,
+.rounded-grid td {
+    border: 1px solid #ddd; /* Optional: Add borders to cells */
+}
+
+.rounded-grid th:first-child,
+.rounded-grid td:first-child {
+    border-top-left-radius: 10px; /* Rounds the top-left corner of the first cell */
+    border-bottom-left-radius: 10px; /* Rounds the bottom-left corner of the first cell */
+}
+
+.rounded-grid th:last-child,
+.rounded-grid td:last-child {
+    border-top-right-radius: 10px; /* Rounds the top-right corner of the last cell */
+    border-bottom-right-radius: 10px; /* Rounds the bottom-right corner of the last cell */
+}
+
+.rounded {
+    border-radius: 10px; /* Adjust as needed */
+    overflow: hidden; /* Ensures inner content doesn't break the corners */
+}
+.table {
+    border-radius: 10px;
+}
+
+.custom-grid {
+    border-radius: 10px; /* Rounded corners */
+    overflow: hidden; /* Ensures the corners are properly clipped */
+    background-color: #f8f9fa; /* Light gray background */
+    border: 1px solid #ddd; /* Optional: Adds a border */
+}
+
+/* Style the table inside the grid */
+.custom-grid table {
+    border-radius: 10px;
+}
+
+/* Optional: Style table headers */
+.custom-grid thead {
+    background-color: #007bff; /* Bootstrap primary color */
+    color: white;
+}
+
+/* Optional: Style table rows */
+.custom-grid tbody tr:hover {
+    background-color: #e9ecef; /* Light gray on hover */
+}
+
+.nav-item.show {
+    background-color: #006bb7 !important;
+}
+
+.nav-link:hover{
+    border-top-right-radius: 10px !important; 
+    border-top-left-radius: 10px !important;
+}
+
+.nav-tabs .nav-item.show .nav-link, .nav-tabs .nav-link.active {
+    border-color: white !important;
+    background-color: white;
+    border-top-right-radius: 10px; /* Rounds the top-right corner of the last cell */
+    border-top-left-radius: 10px; /* Rounds the top-right corner of the last cell */
+    /* --mdb-nav-tabs-link-hover-bgc: green; */
+}
+
+select {
+    background-color:#1b6ec2;
+    border: none;
+    padding: 5px;
+    color: white;
+    border-radius: 5px;
+}
+
+option {
+    background-color: white;
+    color:rgb(53, 51, 51);
+    border: none;
+    border-radius: 5px;
+}
+::deep(.autocomplete-container .btn) {
+    font-size: 102px; /* Adjust button size */
+    padding: 2px 5px;
+}
+
+::deep(.autocomplete-container .loading-icon) {
+    width: 16px; /* Resize loading spinner */
+    height: 16px;
+}
+.spinner-border-md{
+    font-size: 15px;
+    margin: -10px;
+    scale:0.7;
+}
+.collapse{
+    display: block !important;
+}
+
+.custom-grid, .table-responsive {
+    overflow: visible !important;
+    border-radius: 10px !important;
+}
+
+.large-checkbox {
+    transform: scale(1.3) !important; /* Adjust size */
+    margin-top: 10px !important;
+    cursor: pointer !important;
+}
+
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes fadeOutScale {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+}
+
+.fade-in {
+    animation: fadeInScale 0.3s ease-out;
+}
+
+.fade-out {
+    animation: fadeOutScale 0.3s ease-out;
+}
+
+.edit-input, .edit-dropdown {
+    width: 100% !important;
+    height: 36px !important; /* Make height consistent */
+    padding: 5px 10px !important;
+    font-size: 14px !important;
+}
+
+/* Prevent row resizing when editing */
+.custom-grid td {
+    vertical-align: middle !important;
+    height: 45px !important; /* Set a fixed height */
+}
+
+.badge.bg-primary {
+    box-shadow: 0 4px 9px -4px #0d6efd !important; /* Blue for "Waiting" */
+}
+
+.badge.bg-danger {
+    color: #fff !important;
+    box-shadow: 0 4px 9px -4px #dc3545 !important; /* Red for "On Going" */
+}
+
+.badge.bg-success {
+    box-shadow: 0 4px 9px -4px #198754 !important; /* Green for "Returned" */
+}
+
+.badge.bg-secondary {
+    box-shadow: 0 4px 9px -4px #6c757d !important; /* Default gray */
+}
+
+.custom-grid thead tr:first-child th:first-child {
+    border-top-left-radius: 8px !important;
+}
+
+.custom-grid thead tr:first-child th:last-child {
+    border-top-right-radius: 8px !important;
+}
+
+.custom-grid tbody tr:last-child td:first-child {
+    border-bottom-left-radius: 8px !important;
+}
+
+.custom-grid tbody tr:last-child td:last-child {
+    border-bottom-right-radius: 8px !important;
+}
+
+/* Reduce padding */
+.custom-grid th, .custom-grid td {
+    padding: 10px !important;
+    padding-bottom: auto !important;
+}
+
+.custom-grid {
+    font-size: 13px !important;
+}
+
+.small-input {
+    width: 80px !important; /* Adjust width */
+    padding: 4px !important; /* Reduce padding */
+}
+
+.small-input2 {
+    width: 100px !important; /* Adjust width */
+    padding: 4px !important; /* Reduce padding */
+}
+
+.modal-body {
+    padding-bottom: 0 !important;
+}
+
+

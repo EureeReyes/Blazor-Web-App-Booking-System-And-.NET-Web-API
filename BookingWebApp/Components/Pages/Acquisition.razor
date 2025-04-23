@@ -1,0 +1,1217 @@
+﻿@page "/acquisition"
+@rendermode InteractiveServer
+@inject ToastService ToastService
+@inject ApiComm ApiComm
+@inject NavigationManager Navigation
+@using BlazorBootstrap.Components
+@inject IJSRuntime JS
+
+<PageTitle>Dasboard</PageTitle>
+
+@if (purchase == null) {
+    <PlaceholderContainer Animation="PlaceholderAnimation.Glow">
+    <Placeholder Width="PlaceholderWidth.Col12" style="height: 50px; width: 25%;" />
+</PlaceholderContainer>
+} else {
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h1>Item Acquisition</h1>
+        <div>
+            <Button Color="ButtonColor.Dark" @onclick="OnShowGridModalClick">Acquire Items</Button>
+            <Button Color="ButtonColor.Danger"
+                    @onclick="OnShowPurchaseDeleteModalClick" 
+                    Class="float-end ms-2"
+                    Hidden="@(SelectedPurchase.Count == 0)">
+                Delete @(SelectedPurchase.Count > 1 ? $"({SelectedPurchase.Count})" : "")
+            </Button>
+        </div>
+    </div>
+}
+
+<!--------------------------------------------------------------------------------------------!>
+<!--->
+<Modal @ref="GridModal" Title="Acquisition of Items" Size="ModalSize.ExtraLarge" Class="fade-in">
+    <BodyTemplate>
+        <!-- PurchaseHeader Form Section inside an EditForm -->
+<EditForm Model="newPurchase">
+    <DataAnnotationsValidator />
+    <div class="container mb-3 ">
+        <div class="row">
+            <!-- Left Column: POrderNum and Acquisition Date -->
+            <div class="col-md-7">
+                <!-- POrderNum -->
+                <div class="row mb-3">
+                    <label for="POrderNum" class="col-sm-3 col-form-label">POrderNum:</label>
+                    <div class="col-sm-3">
+                        <div class="input-group">
+                            <span class="input-group-text">ORD</span>
+                            <InputNumber id="POrderNum" @bind-Value="newPHeader.POrderNum" class="form-control" disabled />
+                        </div>
+                    </div>
+                </div>
+                <!-- Acquisition Date -->
+                <div class="row mb-3">
+                    <label for="AcquisitionDate" class="col-sm-3 col-form-label">
+                        Acquisition Date: <span class="text-danger">*</span>
+                    </label>
+                    <div class="col-sm-3">
+                        <InputDate id="AcquisitionDate" aria-required="true" @bind-Value="newPHeader.AcquisitionDate" class="form-control"/>
+                        <ValidationMessage For="@(() => newPHeader.AcquisitionDate)" />
+                    </div>
+                </div>
+            </div>
+            <!-- Right Column: Supplier Code -->
+            <div class="col-md-5">
+                <div class="row mb-3">
+                    <label for="SupplierCode" class="col-sm-4 col-form-label">
+                        Supplier Code: <span class="text-danger">*</span>
+                    </label>
+                    <div class="col-sm-8">
+                        <AutoComplete id="SupplierCode" @bind-Value="selectedSupplierId"
+                            class="autocomplete-container"
+                            TItem="Supplier"
+                            DataProvider="SuppliersDataProvider"
+                            PropertyName="DisplayText"
+                            Placeholder="Search a supplier..."
+                            OnChanged="(Supplier supplier) => OnSupplierAutoCompleteChanged(supplier)" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</EditForm>
+
+
+
+        <hr />
+<!--------------------------------------------------------------------------------------------!>
+
+        <!-- PurchaseDetails Grid Section -->
+        <Grid @ref="gridRef"
+            TItem="purchaseDetails"
+            AllowSorting="true"
+            AllowPaging="true"
+            PageSize="5"
+            Data="@PurchaseDetails"
+            HeaderRowCssClass="bg-primary text-white border-bottom-0"
+            Responsive="true"
+            Class="table table-hover custom-grid table-striped">
+            <GridColumns>
+                <GridColumn TItem="purchaseDetails" HeaderText="ItemCode" SortKeySelector="Pd => Pd.ItemCode">
+                    <AutoComplete TItem="ItemsMaster"
+                        @bind-Value="context.SelectedItemDisplay"
+                        DataProvider="ItemsDataProvider"
+                        PropertyName="DisplayText"
+                        Placeholder="Search an item..."
+                        OnChanged="@(selectedItem => OnitemAutoCompleteChanged(selectedItem, context))" />
+                </GridColumn>
+
+
+                <GridColumn TItem="purchaseDetails" HeaderText="Description" SortKeySelector="Pd => Pd.Description">
+                    <AutoComplete TItem="ItemsMaster"
+                        @bind-Value="context.Description"
+                        DataProvider="ItemsDataProvider"
+                        PropertyName="Description"
+                        Placeholder="Search by description..."
+                        OnChanged="@(selectedItem => OnDescriptionAutoCompleteChanged(selectedItem, context))" />
+                </GridColumn>
+
+
+                <GridColumn TItem="purchaseDetails" HeaderText="UoM" SortKeySelector="Pd => Pd.UomId">
+                    <AutoComplete TItem="Uoms"
+                        @bind-Value="context.SelectedUoMCode"
+                        DataProvider="UoMDataProvider"
+                        PropertyName="UoMCode"
+                        Placeholder="UoM..."
+                        OnChanged="@(selectedUom => OnUoMAutoCompleteChanged(selectedUom, context))" 
+                        class="small-input2"/>
+                </GridColumn>
+
+
+                <GridColumn TItem="purchaseDetails" HeaderText="Amount" SortKeySelector="Pd => Pd.PurchasePrice">
+                    <InputNumber @bind-Value="context.PurchasePrice" class="form-control small-input2" Placeholder="Price..."/>
+                </GridColumn>
+
+                <GridColumn TItem="purchaseDetails" HeaderText="Qty" SortKeySelector="Pd => Pd.Quantity">
+                    <InputNumber @bind-Value="context.Quantity" class="form-control small-input" Placeholder="Quantity..."/>
+                </GridColumn>
+
+
+                <GridColumn TItem="purchaseDetails">
+                    <Tooltip Color="TooltipColor.Danger" Class="me-4" Title="Add Individually">
+                        <InputCheckbox class="large-checkbox" @bind-Value="context.AddToInventory" />
+                    </Tooltip>
+                </GridColumn>
+
+                <GridColumn TItem="purchaseDetails" HeaderText="">
+                    <Tooltip Color="TooltipColor.Danger" Class="me-4" Title="Delete">
+                        <Icon Color="IconColor.Danger" Name="IconName.Trash3Fill" class="fs-5" style="cursor: pointer;" @onclick="() => RemoveRow(context.pDetailsID)"/>
+                    </Tooltip>
+
+                </GridColumn>
+            </GridColumns>
+        </Grid>
+
+<!--------------------------------------------------------------------------------------------!>
+
+<!-- Grid Buttons -->
+<div class="mt-3 modal-footer p-2">
+    <Button Color="ButtonColor.Dark" class="btn btn-primary me-2" @onclick="AddEmptyRow">Add Empty Row</Button>
+    <Button Color="ButtonColor.Dark" @onclick="SubmitPurchaseAsync" Class="float-end me-2">
+        Submit
+    </Button>
+    <Button Color="ButtonColor.Danger" @onclick="OnhideGridModalClick" Class="float-end me-2">
+        Close
+    </Button>
+</div>
+    </BodyTemplate>
+</Modal>
+
+<!--------------------------------------------------------------------------------------------!>
+
+
+
+<!--------------------------------------------------------------------------------------------!>
+
+<!-- Confirm Delete Modal for Items -->
+@* <Modal @ref="deleteConfirmationModalPurchase" Title="Confirm Deletion" Size="ModalSize.Regular">
+    <BodyTemplate>
+        <p>Are you sure you want to delete the selected Purchase Order(s)?</p>
+    </BodyTemplate>
+    <FooterTemplate>
+        <Button Color="ButtonColor.Danger" @onclick="DeleteSelectedPurchase">Delete</Button>
+    </FooterTemplate>
+</Modal> *@
+
+<!--------------------------------------------------------------------------------------------!>
+@if (PurchaseHeader == null)
+{
+<PlaceholderContainer Animation="PlaceholderAnimation.Glow">
+    <Placeholder Width="PlaceholderWidth.Col12" style="height: 50px; margin-bottom: 10px;"/>
+    <Placeholder Width="PlaceholderWidth.Col12" style="height: 30px; margin-bottom: 10px;"/>
+    <Placeholder Width="PlaceholderWidth.Col12" style="height: 30px; margin-bottom: 10px;"/>
+    <Placeholder Width="PlaceholderWidth.Col12" style="height: 30px; margin-bottom: 10px;"/>
+    <Placeholder Width="PlaceholderWidth.Col12" style="height: 30px; margin-bottom: 10px;"/>
+    <Placeholder Width="PlaceholderWidth.Col12" style="height: 30px; margin-bottom: 10px;"/>
+    
+</PlaceholderContainer>
+
+}
+else
+{
+<Grid TItem="purchaseHeader"
+    AllowSorting="true"
+    AllowPaging="true"
+    PageSize="5"
+    Data="@PurchaseHeader"
+    HeaderRowCssClass="bg-primary text-white border-bottom-0"
+    Responsive="true"
+    Class="table table-hover custom-grid table-striped"
+    SelectionMode="GridSelectionMode.Single"
+    SelectedItemsChanged="OnSelectedItemsChanged"
+    AllowSelection="true">
+    <GridColumns>
+        <GridColumn TItem="purchaseHeader" HeaderText="POrder No." SortKeySelector="Pheader => Pheader.POrderNum"  Context="Pheader">
+            ORD@(Pheader.POrderNum)
+        </GridColumn>
+        <GridColumn TItem="purchaseHeader" HeaderText="Supplier Code" SortKeySelector="Pheader => Pheader.SupplierId"  Context="Pheader">
+            SUP@(Pheader.SupplierId)
+        </GridColumn>
+        <GridColumn TItem="purchaseHeader" HeaderText="Date" SortKeySelector="Pheader => Pheader.AcquisitionDate"  Context="Pheader">
+            @Pheader.AcquisitionDate
+        </GridColumn>
+
+        <GridColumn TItem="purchaseHeader" HeaderText="PDF">
+            <Tooltip Color="TooltipColor.Danger" Class="me-4" Title="Generate PDF">
+                <Icon Color="IconColor.Dark" Name="IconName.FileEarmarkPdfFill" class="fs-5" style="cursor: pointer;" 
+                    @onclick="(async () => await GeneratePDFAsync(context))" />
+            </Tooltip>
+        </GridColumn>
+    </GridColumns>
+</Grid>
+
+<!-------------------------------2nd part---------------------------------------------------------------->
+
+<!-- Show PurchaseDetails grid when a PurchaseHeader is selected -->
+    @if (SelectedPOrderNum != null)
+    {
+        <hr>    
+        <h4>Purchase Details for Purchase <strong>#ORD@(SelectedPOrderNum)</strong></h4>
+        
+        <Grid 
+            @ref="gridPDetailsRef"
+            TItem="purchaseDetails"
+            AllowSorting="true"
+            AllowPaging="true"
+            PageSize="5"
+            Data="@FilteredPurchaseDetails"
+            HeaderRowCssClass="bg-primary text-white border-bottom-0"
+            Responsive="true"
+            Class="table table-hover custom-grid table-striped">
+            <GridColumns>
+                <GridColumn TItem="purchaseDetails" HeaderText="Details Id" SortKeySelector="Pd => Pd.pDetailsID">
+                    PDS@(context.pDetailsID)
+                </GridColumn>
+                <GridColumn TItem="purchaseDetails" HeaderText="PO No." SortKeySelector="Pd => Pd.POrderNum">
+                    ORD@(context.POrderNum)
+                </GridColumn>
+                <GridColumn TItem="purchaseDetails" HeaderText="Item Code" SortKeySelector="Pd => Pd.ItemCode">
+                    ITM@(context.ItemCode)
+                </GridColumn>
+                <GridColumn TItem="purchaseDetails" HeaderText="Description" SortKeySelector="Pd => Pd.Description">
+                    @context.Description
+                </GridColumn>
+                <GridColumn TItem="purchaseDetails" HeaderText="UoM">
+                    @context.SelectedUoMCode
+                </GridColumn>
+
+                <GridColumn TItem="purchaseDetails" HeaderText="Quantity" SortKeySelector="Pd => Pd.Quantity">
+                    @context.Quantity
+                </GridColumn>
+                <GridColumn TItem="purchaseDetails" HeaderText="Unit Price" SortKeySelector="Pd => Pd.PurchasePrice">
+                    @context.PurchasePrice
+                </GridColumn>
+            </GridColumns>
+        </Grid>
+    }
+}
+<!--------------------------------------------------------------------------------------------!>
+
+<!-- Offcanvas -->
+<Offcanvas @ref="offcanvas" Title="Purchase Details">
+    <BodyTemplate>
+        <div>
+
+            <p class="mb-0"><strong>Item Code:</strong></p>
+            <InputNumber @bind-Value="selectedItemCodes" disabled class="mb-2 form-control" />
+            <p class="mb-0"><strong>Purchase Order No.:</strong></p>
+            <InputNumber @bind-Value="selectedPOrderNum" disabled class="mb-2 form-control" />
+            
+
+            <label class="mb-2">
+                <input type="checkbox" @bind="isEditingEnabled" />
+                Enable updates (Check to edit fields)
+            </label>
+
+            <p class="mb-0"><strong>Model:</strong></p>
+            <InputText @bind-Value="selectedModel" disabled=@(!isEditingEnabled) class="form-control mb-2" />
+
+            <p class="mb-0"><strong>Description:</strong></p>
+            <InputTextArea @bind-Value="selectedDescription" disabled=@(!isEditingEnabled) style="resize: none;" class="form-control mb-2" />
+
+            <p class="mb-0"><strong>Date:</strong></p>
+            <InputDate TValue="DateOnly?" @bind-Value="selectedAcquisitionDate" disabled=@(!isEditingEnabled) class="mb-2 form-control" />
+
+            <p class="mb-0"><strong>Purchase Price:</strong></p>
+            <InputNumber TValue="double" @bind-Value="selectedPurchasePrice" disabled=@(!isEditingEnabled) class="mb-2 form-control" />
+        
+            <p class="mb-0"><strong>Quantity:</strong></p>
+            <InputNumber @bind-Value="selectedQuantity" disabled=@(!isEditingEnabled) class="mb-2 form-control" />
+        
+        </div>    
+    </BodyTemplate>
+
+    <FooterTemplate>
+        <div class="d-flex justify-content-end">
+            <Button class="float-end" Color="ButtonColor.Dark" @onclick="UpdatePurchaseOrder" disabled=@(!isEditingEnabled)>Update Item</Button>
+        </div>
+    </FooterTemplate>
+</Offcanvas>
+
+<!--------------------------------------------------------------------------------------------!>
+
+<!--Confirm Item Delete Modal-->
+<Modal @ref="deleteConfirmationModal" Title="Confirm Deletion">
+    <BodyTemplate>
+        <p>Are you sure you want to delete this item?</p>
+    </BodyTemplate>
+
+    <FooterTemplate>
+        <Button Color="ButtonColor.Danger" @onclick="DeleteItem">Delete Item</Button>
+
+    </FooterTemplate>
+</Modal>
+
+<!--------------------------------------------------------------------------------------------!>
+
+<!--Toast When Item is deleted-->
+<Toasts class="p-3" Messages="messages" AutoHide="true" StackLength="3" Placement="ToastsPlacement.TopRight" />
+
+<!--------------------------------------------------------------------------------------------!>
+
+<script src="site.js"></script>
+
+@code {
+    [Inject] ModalService ModalService { get; set; } = default!;
+
+//--------------------------------------------------------------------------------------------    
+
+    // Offcanvas, Delete Item, Confirm delete, Toast, OnRoleDoubleClick variables
+    private Offcanvas offcanvas = default!;
+    private Modal deleteConfirmationModal = default!;
+    private Modal deleteConfirmationModalCat = default!;
+    private int selectedItemId;
+    private string? selectedSupplierId;
+    private string? selectedItemCode;
+    private string? selectedUomCode;
+    private int selectedItemCodes;
+    private int selectedPOrderNum;
+    private int selectedQuantity;
+    private string selectedModel = string.Empty;
+    private string selectedSupplierName = string.Empty;
+    private string selectedIndustry = string.Empty;
+    private string selectedDescription = string.Empty;
+    private DateOnly? selectedAcquisitionDate;
+    private string selectedStatus = string.Empty;
+    private double selectedPurchasePrice;
+    private string selectedLocation = string.Empty;
+    private string selectedItemImage = string.Empty; // Base64 Image String
+    private bool isEditingEnabled = false;
+
+    @* Off canvas On row double click *@
+
+//--------------------------------------------------------------------------------------------  
+    //For deleting item
+    private async Task ConfirmDelete()
+    {
+        await deleteConfirmationModal.ShowAsync();
+    }
+//---------------------------------------------------------------------------------------------------------
+
+
+    private async Task DeleteItem()
+    {
+        if (selectedItemId > 0)
+        {
+            string deletedItemName = selectedModel; // Store name before deletion
+
+            bool success = await ApiComm.DeleteItemAsync(selectedItemId);
+            if (success)
+            {
+                // Refresh the item list after deletion
+              //  items = await ApiComm.GetItemsAsync();
+                await offcanvas.HideAsync(); // Close the offcanvas
+
+                // Show toast notification with actual item name
+                ShowMessage(ToastType.Danger, deletedItemName);
+            }
+            else
+            {
+                Console.WriteLine("Failed to delete item");
+            }
+        }
+        await deleteConfirmationModal.HideAsync();
+    }
+//--------------------------------------------------------------------------------------------  
+    //For updating item
+private async Task UpdatePurchaseOrder()
+{
+    var updatedPurchase = new Purchase
+    {
+        POrderNum = selectedPOrderNum,
+        ItemCode = selectedItemCodes,
+        ItemModel = selectedModel,
+        @* SupplierName = selectedSupplierName, *@
+        Description = selectedDescription,
+        AcquisitionDate = selectedAcquisitionDate,
+        PurchasePrice = selectedPurchasePrice, // Ensuring a default value
+        Quantity = selectedQuantity // Ensuring a default value
+    };
+
+    bool success = await ApiComm.UpdatePurchaseAsync(updatedPurchase);
+    if (success)
+    {
+        // Refresh purchase list if needed
+        purchase = await ApiComm.GetPurchaseAsync(); 
+
+        await offcanvas.HideAsync(); // Close the offcanvas
+        ShowMessage(ToastType.Success, $"Updated {selectedModel} successfully!");
+    }
+    else
+    {
+        Console.WriteLine("Failed to update purchase");
+    }
+}
+
+//--------------------------------------------------------------------------------------------  
+    @* For item table update status *@
+    private void SetSelectedStatus(string status)
+    {
+        selectedStatus = status;
+    }
+//--------------------------------------------------------------------------------------------  
+    @* For toast *@
+    List<ToastMessage> messages = new List<ToastMessage>();
+//--------------------------------------------------------------------------------------------  
+    @* Update and delete item toast *@
+    private async void ShowMessage(ToastType toastType, string itemName)
+    {
+        string title = toastType == ToastType.Success ? "Item Updated" : "Item Deleted";
+        string action = toastType == ToastType.Success ? "updated" : "deleted";
+
+        var toast = new ToastMessage
+        {
+            Type = toastType,
+            Title = title,
+            HelpText = $"{DateTime.Now}",
+            Message = $"You {action} the item '{itemName}' at {DateTime.Now}.",
+        };
+
+        messages.Add(toast);
+        StateHasChanged(); // Force UI update
+
+        // Remove toast after 5 seconds
+        await Task.Delay(6000);
+        messages.Remove(toast);
+        StateHasChanged(); // Update UI again to reflect removal
+    }
+//--------------------------------------------------------------------------------------------  
+    //For status change in Grid (Item table)
+    private async Task OnStatusChanged(Items item)
+    {
+        bool success = await ApiComm.UpdateItemAsync(item);
+
+        if (success)
+        {
+            ShowMessage(ToastType.Success, item.ItemModel);
+        }
+        else
+        {
+            ShowMessage(ToastType.Warning, item.ItemModel);
+            Console.WriteLine("Failed to update item");
+        }
+        // Refresh the UI.
+        StateHasChanged();
+    }
+//------------------------------------------------------------------------    
+
+    // Data and form, Add Item, pagination, resfresh page, open-close add item modal variables
+    private List<PhCity> phCities = new();
+    private List<Purchase> purchase = new();
+    private List<Category> categories = new();
+    private List<ItemsMaster> itemMaster = new();
+    private List<Supplier> supplier = new();
+    private List<purchaseDetails> PurchaseDetails = new();
+    private List<purchaseDetails> PurchaseDetailsGrid = new();
+    private List<purchaseHeader> PurchaseHeader = new();
+    private List<Uoms> uoms = new();
+
+    //------------------------------------------------------------------------
+    private Grid<purchaseDetails>? gridRef;
+    private Grid<purchaseDetails>? gridPDetailsRef;
+    //------------------------------------------------------------------------
+
+    private Items newItem = new();
+    private Purchase newPurchase = new();
+    private ItemsMaster newitemsMaster = new();
+    private Category newCategory = new();
+    private Supplier newSupplier = new();
+    private purchaseDetails newPDetails = new();
+    private purchaseHeader newPHeader = new();
+    private Uoms newUoms = new();
+    //------------------------------------------------------------------------
+    private EditContext? editContext;
+    private EditContext? categoryEditContext;
+    private EditContext? itemMasterEditContext;
+    //------------------------------------------------------------------------
+    private string successMessage = "";
+    private string errorMessage = "";
+    private bool isLoading = false;
+    //------------------------------------------------------------------------
+    private Modal Modal = default!;
+    private Modal CatsModal = default!;
+    private Modal GridModal = default!;
+    private Modal deleteConfirmationModalPurchase = default!;
+
+    //Load items table
+    protected override async Task OnInitializedAsync()
+    {
+        // Load items once.
+
+        StateHasChanged(); //to update immediately
+
+        categories = await ApiComm.GetCatsAsync();
+        purchase = await ApiComm.GetPurchaseAsync();
+        PurchaseHeader = await ApiComm.GetPurchaseHeaderAsync();
+        FilteredPurchaseDetails = await ApiComm.GetPurchaseDetailsAsync();
+        PurchaseDetailsGrid = await ApiComm.GetPurchaseDetailsAsync();
+        supplier = await ApiComm.GetSuppliersAsync();
+        uoms = await ApiComm.GetUoMAsync();
+
+        editContext = new EditContext(newPurchase);
+        categoryEditContext = new EditContext(newCategory);
+
+        var headers = await ApiComm.GetPurchaseHeaderAsync();
+    
+        // Calculate next purchase order number.
+        newPHeader.POrderNum = headers.Any() ? headers.Max(ph => ph.POrderNum) + 1 : 1001;
+    }
+//--------------------------------------------------------------------------------------------  
+
+    private async Task AddEmptyRow()
+    {
+
+        var newId = PurchaseDetails.Any() ? PurchaseDetails.Max(e => e.pDetailsID) + 1 : 1;
+        PurchaseDetails.Add(new purchaseDetails { 
+        
+        pDetailsID = newId,
+        
+        ItemCode = newPDetails.ItemCode,
+        Description = newPDetails.Description,
+        UomId = newPDetails.UomId,
+        PurchasePrice = newPDetails.PurchasePrice,
+        Quantity = newPDetails.Quantity
+        });
+
+        if (gridRef is not null)
+        {
+            await gridRef.RefreshDataAsync();
+            Console.WriteLine("Adding new row...");
+
+        }
+    }
+
+    private void OnAddToInventoryChanged(purchaseDetails row, bool value)
+{
+    row.AddToInventory = value;
+}
+
+//---------------------------------------------------------------------------------------------------------
+
+        private async Task RemoveRow(int id)
+    {
+        Console.WriteLine($"Removing row with ID: {id}");
+
+        var PDetailToRemove = PurchaseDetails.FirstOrDefault(e => e.pDetailsID == id);
+        if (PDetailToRemove is not null)
+        {
+            PurchaseDetails.Remove(PDetailToRemove);
+
+            if (gridRef is not null)
+            {
+                await gridRef.RefreshDataAsync();
+            }
+        }
+    }
+
+
+//---------------------------------------------------------------------------------------------------------
+
+private async Task OpenOffcanvas(Purchase purchase)
+{
+    selectedPOrderNum = purchase.POrderNum;
+    selectedItemCodes = purchase.ItemCode;
+    selectedModel = purchase.ItemModel;
+    @* selectedSupplierName = purchase.SupplierName; *@
+    selectedDescription = purchase.Description;
+    selectedAcquisitionDate = purchase.AcquisitionDate;
+    selectedPurchasePrice = purchase.PurchasePrice;
+    selectedQuantity = purchase.Quantity;
+    
+    isEditingEnabled = false;
+
+    await offcanvas.ShowAsync();
+}
+
+//--------------------------------------------------------------------------------------------  
+    //Toast for add item
+    private async void ShowAddMessage(string itemName, int actualQuantity)
+    {
+        var toast = new ToastMessage
+        {
+            Type = ToastType.Success,
+            Title = "Item Added",
+            HelpText = $"{DateTime.Now}",
+            Message = $"You added '{actualQuantity}' of the item '{itemName}'  at {DateTime.Now}.",
+        };
+
+        messages.Add(toast);
+        StateHasChanged();
+
+        // Remove the toast after 6 seconds
+        await Task.Delay(6000);
+        messages.Remove(toast);
+        StateHasChanged();
+    }
+//--------------------------------------------------------------------------------------------  
+
+    private async void ShowAddPurchaseMessage(int POrderNum)
+    {
+        var toast = new ToastMessage
+        {
+            Type = ToastType.Success,
+            Title = "Item Added",
+            HelpText = $"{DateTime.Now}",
+            Message = $"You added '{POrderNum}' at {DateTime.Now}.",
+        };
+
+        messages.Add(toast);
+        StateHasChanged();
+
+        // Remove the toast after 6 seconds
+        await Task.Delay(6000);
+        messages.Remove(toast);
+        StateHasChanged();
+    }
+    
+    //For resetting the add item form
+    private void ResetForm()
+    {
+        newItem = new Items();
+        newitemsMaster = new ItemsMaster();
+        editContext = new EditContext(newItem);
+        categoryEditContext = new EditContext(newCategory);
+        itemMasterEditContext = new EditContext(newitemsMaster);
+        selectedItemCode = null;
+        successMessage = "";
+        errorMessage = "";
+    }
+
+//--------------------------------------------------------------------------------------------  
+    //For showing and hiding modal
+    private async Task OnShowModalClick()
+    {
+        await Modal.ShowAsync();
+    }
+
+    private async Task OnHideModalClick()
+    {
+        await Modal.HideAsync();
+    }
+
+//--------------------------------------------------------------------------------------------  
+
+
+    private async Task OnShowCatsModalClick()
+    {
+        await CatsModal.ShowAsync();
+    }
+
+    private async Task OnHideCatsModalClick()
+    {
+        await CatsModal.HideAsync();
+    }
+
+
+//--------------------------------------------------------------------------------------------  
+
+
+    private async Task OnShowCatsDeleteModalClick()
+    {
+        await deleteConfirmationModalCat.ShowAsync();
+    }
+
+    private async Task OnHideCatsDeleteModalClick()
+    {
+        await deleteConfirmationModalCat.HideAsync();
+    }
+
+
+
+//--------------------------------------------------------------------------------------------  
+
+    private async Task OnShowPurchaseDeleteModalClick()
+    {
+        await deleteConfirmationModalPurchase.ShowAsync();
+    }
+
+    private async Task OnHidePurchaseDeleteModalClick()
+    {
+        await deleteConfirmationModalPurchase.HideAsync();
+    }
+
+//-------------------------------------------------------------------------------------------- 
+
+    private async Task OnShowGridModalClick()
+    {
+        await GridModal.ShowAsync();
+    }
+
+    private async Task OnhideGridModalClick()
+    {
+        await GridModal.HideAsync();
+    }
+
+private async Task AddCategory()
+{
+    successMessage = "";
+    errorMessage = "";
+    isLoading = true;
+
+    Console.WriteLine($"Category Name: {newCategory.CategoryName}");
+
+    bool success = await ApiComm.AddCatsAsync(newCategory);
+    if (success)
+    {
+        ShowAddMessage(newCategory.CategoryName ?? "Unnamed Category", 1);
+        Console.WriteLine($"Category Name: {newCategory.CategoryName} successfully added");
+
+        newCategory = new Category();
+        editContext = new EditContext(newCategory);
+        categories = await ApiComm.GetCatsAsync();
+    }
+    else
+    {
+        errorMessage = "Failed to add category.";
+    }
+
+    isLoading = false;
+}
+//---------------------------------------------------------------------------------------------------------
+
+private void OnDescriptionAutoCompleteChanged(ItemsMaster item, purchaseDetails row)
+{
+    if (item != null)
+    {
+        row.ItemCode = item.ItemCode;
+        row.SelectedItemDisplay = item.DisplayText;
+        row.Description = item.Description;
+    }
+}
+
+//---------------------------------------------------------------------------------------------------------
+
+    private string? selectedCategory;
+
+    private async Task<AutoCompleteDataProviderResult<Category>> CategoriesDataProvider(AutoCompleteDataProviderRequest<Category> request)
+    {
+        if (categories is null) // Load categories only once for performance
+
+            categories = await ApiComm.GetCatsAsync();
+
+        return await Task.FromResult(request.ApplyTo(categories.OrderBy(c => c.CategoryName)));
+    }
+
+    private void OnAutoCompleteChanged(Category category)
+    {
+        selectedCategory = category?.CategoryName;
+    }
+
+//---------------------------------------------------------------------------------------------------------
+
+    private HashSet<purchaseHeader> Purchset = new();
+    private int? SelectedPOrderNum;
+    private List<purchaseDetails> FilteredPurchaseDetails = new();
+
+private async Task OnSelectedItemsChanged(HashSet<purchaseHeader> selectedHeaders)
+{
+    if (selectedHeaders.Any())
+    {
+        var selectedHeader = selectedHeaders.First();
+        SelectedPOrderNum = selectedHeader.POrderNum;
+
+        await Task.Delay(10); // Simulate async operation
+
+        var purchaseDetails = await ApiComm.GetPurchaseDetailsAsync();
+        var uoms = await ApiComm.GetUoMAsync(); // Fetch UoM list
+
+        // Map UomId to UoMCode
+        FilteredPurchaseDetails = purchaseDetails
+            .Where(pd => pd.POrderNum == SelectedPOrderNum)
+            .Select(pd => new purchaseDetails
+            {
+                pDetailsID = pd.pDetailsID,
+                POrderNum = pd.POrderNum,
+                ItemCode = pd.ItemCode,
+                Description = pd.Description,
+                Quantity = pd.Quantity,
+                PurchasePrice = pd.PurchasePrice,
+                UomId = pd.UomId,
+                SelectedUoMCode = uoms.FirstOrDefault(u => u.UoMId == pd.UomId)?.UoMCode ?? "N/A" // Get UoMCode
+            })
+            .ToList();
+
+        // Force UI refresh
+        if (gridPDetailsRef is not null)
+        {
+            await gridPDetailsRef.RefreshDataAsync();
+        }
+        
+        StateHasChanged();
+    }
+    else
+    {
+        SelectedPOrderNum = null;
+        FilteredPurchaseDetails.Clear();
+        StateHasChanged();
+    }
+}
+
+
+
+
+//---------------------------------------------------------------------------------------------------------
+
+private async Task<AutoCompleteDataProviderResult<Uoms>> UoMDataProvider(AutoCompleteDataProviderRequest<Uoms> request)
+{
+    var uoms = await ApiComm.GetUoMAsync(); // Fetch UoMs from API
+    return await Task.FromResult(request.ApplyTo(uoms.OrderBy(u => u.UoMCode)));
+}
+
+private void OnUoMAutoCompleteChanged(Uoms uom, purchaseDetails row)
+{
+    if (uom != null)
+    {
+        row.SelectedUoMCode = uom.UoMCode; // Keep dropdown showing UoMCode
+        row.UomId = uom.UoMId; // Store ID for database insertion
+    }
+}
+//---------------------------------------------------------------------------------------------------------
+private async Task<AutoCompleteDataProviderResult<ItemsMaster>> ItemsDataProvider(AutoCompleteDataProviderRequest<ItemsMaster> request)
+{
+    if (itemMaster == null || !itemMaster.Any()) // Ensure data is loaded
+        itemMaster = await ApiComm.GetItemMastAsync();
+
+    return await Task.FromResult(request.ApplyTo(itemMaster.OrderBy(i => i.DisplayText)));
+}
+
+private void OnitemAutoCompleteChanged(ItemsMaster item, purchaseDetails row)
+{
+    if (item != null)
+    {
+        selectedItemCode = item.ItemCode.ToString();
+
+        row.ItemCode = item.ItemCode;
+        row.SelectedItemDisplay = item.DisplayText;
+        row.Description = item.Description;
+        
+        // 🔥 Fetch UoMCode using UoMId
+        var uom = uoms.FirstOrDefault(u => u.UoMId == item.UoMId);
+        row.SelectedUoMCode = uom?.UoMCode ?? "N/A"; 
+        row.UomId = uom?.UoMId ?? 0;
+
+        // Set the ItemCode in newPurchase instead of newItem
+        if (newPurchase != null)
+        {
+            newPurchase.ItemCode = item.ItemCode;
+        }
+
+        // Update other fields if needed
+        newitemsMaster.ItemName = item.ItemName;
+        newitemsMaster.Description = item.Description;
+    }
+}
+//---------------------------------------------------------------------------------------------------------
+private async Task<AutoCompleteDataProviderResult<Supplier>> SuppliersDataProvider(AutoCompleteDataProviderRequest<Supplier> request)
+{
+    if (supplier == null || !supplier.Any()) // Ensure data is loaded
+        supplier = await ApiComm.GetSuppliersAsync(); // Fetch supplier data
+
+    return await Task.FromResult(request.ApplyTo(supplier.OrderBy(s => s.SupplierName)));
+}
+
+private void OnSupplierAutoCompleteChanged(Supplier supplier)
+{
+    if (supplier != null)
+    {
+        // Store SupplierId with "SUP" prefix for display
+        selectedSupplierId = $"SUP{supplier.SupplierId}";
+        selectedSupplierName = supplier.SupplierName;
+        selectedIndustry = supplier.Industry;
+
+        // Set the actual SupplierId in newPHeader without the "SUP" prefix
+        if (newPHeader != null)
+        {
+            newPHeader.SupplierId = supplier.SupplierId; // Keep as int for DB insertion
+        }
+    }
+}
+
+
+//---------------------------------------------------------------------------------------------------------
+
+
+    private HashSet<purchaseHeader> SelectedPurchase = new();
+
+    // Called when the grid selection changes.
+    private Task OnSelectedPurchaseChanged(HashSet<purchaseHeader> selectedPurchase)
+    {
+        SelectedPurchase = selectedPurchase;
+        return Task.CompletedTask;
+    }
+
+    // Show the confirmation modal for deletion.
+//---------------------------------------------------------------------------------------------------------
+    private async Task OnShowSupplierDeleteModalClick()
+    {
+        await deleteConfirmationModalPurchase.ShowAsync();
+    }
+    // Delete all selected suppliers.
+    @* private async Task DeleteSelectedPurchase()
+    {
+        foreach (var purchases in SelectedPurchase.ToList())
+        {
+            bool success = await ApiComm.DeletePurchaseAsync(purchases.POrderNum);
+            if (success)
+            {
+                // Optionally remove from UI list immediately.
+                ShowMessage(ToastType.Danger, purchases.ItemModel);
+                purchase.RemoveAll(s => s.POrderNum == purchases.POrderNum);
+            }
+            else
+            {
+                errorMessage = $"Failed to delete Supplier with ID {purchases.POrderNum}.";
+                // Optionally break or continue based on your error strategy.
+            }
+        }
+
+        // Refresh the list.
+        purchase = await ApiComm.GetPurchaseAsync();
+        // Clear the selection.
+        SelectedPurchase.Clear();
+        await deleteConfirmationModalPurchase.HideAsync();
+    } *@
+//---------------------------------------------------------------------------------------------------------
+private async Task SubmitPurchaseAsync()
+{
+    // First, submit the PurchaseHeader.
+    bool headerSuccess = await ApiComm.AddPurchaseHeaderAsync(newPHeader);
+    if (!headerSuccess)
+    {
+        errorMessage = "Failed to submit Purchase Header.";
+        return;
+    }
+
+    ShowAddPurchaseMessage(newPHeader.POrderNum);
+
+    // Assign the new header's POrderNum to each purchaseDetails row.
+    foreach (var detail in PurchaseDetails)
+    {
+        detail.POrderNum = newPHeader.POrderNum;
+    }
+
+    // Create a new list for submission that does not include pDetailsID
+    var detailsToSubmit = PurchaseDetails.Select(detail => new purchaseDetails
+    {
+        // Do not set pDetailsID so that the database auto-generates it.
+        ItemCode = detail.ItemCode,
+        Description = detail.Description,
+        UomId = detail.UomId,
+        PurchasePrice = detail.PurchasePrice,
+        Quantity = detail.Quantity,
+        POrderNum = detail.POrderNum,
+        SelectedItemDisplay = detail.SelectedItemDisplay
+    }).ToList();
+
+
+
+    // Now submit the PurchaseDetails.
+    bool detailsSuccess = await ApiComm.AddPurchaseDetailsAsync(detailsToSubmit);
+    SelectedPOrderNum = newPHeader.POrderNum;
+
+
+
+    if (!detailsSuccess)
+    {
+
+        errorMessage = "Purchase Header submitted, but failed to submit Purchase Details.";
+        return;
+    }
+
+    foreach (var detail in PurchaseDetails)
+    {
+        if (detail.AddToInventory) // Checked: Insert individual rows, each with Quantity = 1
+        {
+            for (int i = 0; i < detail.Quantity; i++)
+            {
+                var newInventory = new Inventories
+                {
+                    ItemCode = detail.ItemCode,
+                    POrderNum = detail.POrderNum,
+                    UoMId = detail.UomId,
+                    Description = detail.Description,
+                    BookingState = "Open",
+                    Quantity = 1, // Set Quantity to 1
+                    Status = "Active"
+                };
+                await ApiComm.AddInventoryAsync(newInventory);
+            }
+        }
+        else // Unchecked: Insert only 1 row with the total quantity
+        {
+            var newInventory = new Inventories
+            {
+                ItemCode = detail.ItemCode,
+                POrderNum = detail.POrderNum,
+                UoMId = detail.UomId,
+                Description = detail.Description,
+                Quantity = detail.Quantity, // Keep original quantity
+                BookingState = "Open",
+                Status = "Active"
+            };
+            await ApiComm.AddInventoryAsync(newInventory);
+        }
+    }
+    successMessage = "Purchase submitted successfully.";
+
+    await ResetModalContentsAsync();
+    PurchaseHeader = await ApiComm.GetPurchaseHeaderAsync();
+    
+}
+//---------------------------------------------------------------------------------------------------------
+private async Task ResetModalContentsAsync()
+{
+    // Reinitialize the grid collection to an empty list.
+    PurchaseDetails = new List<purchaseDetails>();
+
+    // Reset the supplier selection variables.
+    selectedSupplierId = string.Empty;
+    selectedSupplierName = string.Empty;
+    selectedIndustry = string.Empty;
+
+    // Re-fetch current PurchaseHeaders to determine the next available POrderNum.
+    var headers = await ApiComm.GetPurchaseHeaderAsync();
+    int nextPOrderNum = headers.Any() ? headers.Max(ph => ph.POrderNum) + 1 : 1;
+
+    // Reset your PurchaseHeader model with the next available POrderNum and clear supplier.
+    newPHeader = new purchaseHeader
+    {
+        POrderNum = nextPOrderNum,
+        AcquisitionDate = null,  // Reset as needed
+        SupplierId = 0           // Clear supplier id
+    };
+
+    // If using an EditContext for validation, reinitialize it.
+    editContext = new EditContext(newPHeader);
+
+    // Optionally, refresh the grid if needed.
+    if (gridRef is not null)
+    {
+        await gridRef.RefreshDataAsync();
+    }
+
+    // Notify the UI to re-render.
+    StateHasChanged();
+}
+
+private async Task GeneratePDFAsync(purchaseHeader selectedHeader)
+{
+    using var stream = new MemoryStream();
+    var document = new PdfDocument();
+    var page = document.AddPage();
+    var gfx = XGraphics.FromPdfPage(page);
+    var font = new XFont("Arial", 8, XFontStyle.Regular);
+    var boldFont = new XFont("Arial", 12, XFontStyle.Bold);
+    var mediumFont = new XFont("Arial", 10, XFontStyle.Bold);
+
+    // Define margins
+    int marginTop = 40;
+    int marginLeft = 40;
+    int marginRight = 40;
+    int contentWidth = (int)page.Width - marginLeft - marginRight;
+    int rightX = marginLeft + contentWidth - 200; // Adjusted right column position
+
+    int y = marginTop;
+
+    // Fetch supplier details
+    var suppliers = await ApiComm.GetSuppliersAsync();
+    var supplier = suppliers.FirstOrDefault(s => s.SupplierId == selectedHeader.SupplierId);
+    string supplierName = supplier?.SupplierName ?? "Unknown Supplier";
+    string supplierAddress = supplier?.SupplierAddress ?? "Unknown Address";
+    string supplierContact = supplier?.SupplierContactNum ?? "Unknown Contact";
+
+    // --- Logo and Inline Text (Top Left) ---
+    string logoPath = Path.Combine(Environment.CurrentDirectory, "wwwroot/Images", "itsslogo.png");
+
+    if (File.Exists(logoPath))
+    {
+        var logo = XImage.FromFile(logoPath);
+
+        // Resize and position logo
+        double logoWidth = 75;
+        double logoHeight = 50;
+        gfx.DrawImage(logo, marginLeft- 20, marginTop - 30, logoWidth, logoHeight);
+
+        // Draw inline text beside the logo
+        gfx.DrawString("Innovative Thinker Software ", boldFont, XBrushes.Black, new XPoint(marginLeft - 30  + logoWidth + 10, marginTop));
+        gfx.DrawString("Solutions Corporation", boldFont, XBrushes.Black, new XPoint(marginLeft - 30  + logoWidth + 10, marginTop + 10));
+    }
+
+    // --- Top Right Info ---
+    gfx.DrawString($"Purchase Order # ORD{selectedHeader.POrderNum}", boldFont, XBrushes.Black, new XPoint(rightX, y));
+    y += 15;
+    gfx.DrawString($"Acquisition Date: {selectedHeader.AcquisitionDate:yyyy-MM-dd}", font, XBrushes.Black, new XPoint(rightX, y));
+    y += 30;
+
+    // --- Supplier Info (Left) ---
+    gfx.DrawString("Supplier", font, XBrushes.Black, new XPoint(marginLeft, y));
+    y += 15;
+    gfx.DrawString(supplierName, boldFont, XBrushes.Black, new XPoint(marginLeft, y));
+    y += 12;
+    gfx.DrawString("Site Administrator", font, XBrushes.Black, new XPoint(marginLeft, y));
+    y += 15;
+    gfx.DrawString(supplierAddress, font, XBrushes.Black, new XPoint(marginLeft, y));
+    y += 15;
+    gfx.DrawString(supplierContact, font, XBrushes.Black, new XPoint(marginLeft, y));
+
+    // --- Receiver Info (Right) ---
+    int receiverY = y - 58; // Align with supplier top
+    gfx.DrawString("Receiver", font, XBrushes.Black, new XPoint(rightX, receiverY));
+    receiverY += 15;
+    gfx.DrawString("ITSS", boldFont, XBrushes.Black, new XPoint(rightX, receiverY));
+    receiverY += 12;
+    gfx.DrawString("Freddie Layco", font, XBrushes.Black, new XPoint(rightX, receiverY));
+    receiverY += 15;
+    gfx.DrawString("Phase 1 Block 56 Lot 32 Mary Cris Complex,", font, XBrushes.Black, new XPoint(rightX, receiverY));
+    receiverY += 12;
+    gfx.DrawString("General Trias Cavite", font, XBrushes.Black, new XPoint(rightX, receiverY));
+    receiverY += 15;
+    gfx.DrawString("09254852658", font, XBrushes.Black, new XPoint(rightX, receiverY));
+
+    y += 40;
+
+    // --- TABLE HEADER ---
+    int tableLeft = marginLeft;
+    int columnWidth = 100;
+    int rowHeight = 15;
+    int rowHeightTItle = 10;
+
+    y += 10;
+    gfx.DrawString("ItemCode", mediumFont, XBrushes.Black, new XPoint(tableLeft, y));
+    gfx.DrawString("Description", mediumFont, XBrushes.Black, new XPoint(tableLeft + columnWidth, y));
+    gfx.DrawString("UoM", mediumFont, XBrushes.Black, new XPoint(tableLeft + 2 * columnWidth, y));
+    gfx.DrawString("Price", mediumFont, XBrushes.Black, new XPoint(tableLeft + 3 * columnWidth, y));
+    gfx.DrawString("Qty", mediumFont, XBrushes.Black, new XPoint(tableLeft + 4 * columnWidth, y));
+    y += rowHeightTItle;
+
+    gfx.DrawLine(XPens.Black, tableLeft, y, tableLeft + 5 * columnWidth, y);
+    y += 10;
+
+    // --- DETAILS ---
+    var purchaseDetails = await ApiComm.GetPurchaseDetailsAsync();
+    var uoms = await ApiComm.GetUoMAsync();
+
+    var filteredDetails = purchaseDetails
+        .Where(pd => pd.POrderNum == selectedHeader.POrderNum)
+        .Select(pd => new
+        {
+            ItemCode = pd.ItemCode.ToString(),
+            pd.Description,
+            UoMCode = uoms.FirstOrDefault(u => u.UoMId == pd.UomId)?.UoMCode ?? "N/A",
+            pd.PurchasePrice,
+            pd.Quantity
+        })
+        .ToList();
+
+    foreach (var item in filteredDetails)
+    {
+        gfx.DrawString(item.ItemCode, font, XBrushes.Black, new XPoint(tableLeft, y));
+        gfx.DrawString(item.Description, font, XBrushes.Black, new XPoint(tableLeft + columnWidth, y));
+        gfx.DrawString(item.UoMCode, font, XBrushes.Black, new XPoint(tableLeft + 2 * columnWidth, y));
+        gfx.DrawString(item.PurchasePrice.ToString("C2"), font, XBrushes.Black, new XPoint(tableLeft + 3 * columnWidth, y));
+        gfx.DrawString(item.Quantity.ToString(), font, XBrushes.Black, new XPoint(tableLeft + 4 * columnWidth, y));
+        y += rowHeight;
+        gfx.DrawLine(XPens.Black, tableLeft, y, tableLeft + 5 * columnWidth, y);
+        y += 10;
+    }
+
+    document.Save(stream, false);
+    stream.Position = 0;
+
+    var fileName = $"Purchase_{selectedHeader.POrderNum}.pdf";
+    using var streamRef = new DotNetStreamReference(stream);
+    await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+}
+
+
+}
+<!---More code here--->

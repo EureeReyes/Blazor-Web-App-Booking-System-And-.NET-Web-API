@@ -1,0 +1,619 @@
+@page "/supplierMaster"
+@rendermode InteractiveServer
+@inject ToastService ToastService
+@inject ApiComm ApiComm
+@inject NavigationManager Navigation
+@using BlazorBootstrap.Components
+
+
+<PageTitle>Suppliers</PageTitle>
+
+@if (Supplier == null) {
+    <PlaceholderContainer Animation="PlaceholderAnimation.Glow">
+        <Placeholder Width="PlaceholderWidth.Col12" style="height: 50px; width: 25%;" />
+    </PlaceholderContainer>
+} else {
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h1>Suppliers</h1>
+        <div>
+            <Button Color="ButtonColor.Danger"
+                    Class="mx-1"
+                    @onclick="OnShowSupplierDeleteModalClick" 
+                    Hidden="@(SelectedSuppliers.Count == 0)">
+                Delete @(SelectedSuppliers.Count > 1 ? $"({SelectedSuppliers.Count})" : "")
+            </Button>
+            <Button Color="ButtonColor.Dark" @onclick="OnShowSupplierModalClick">Add Supplier</Button>
+
+        </div>
+    </div>
+}
+
+
+<!--------------------------------------------------------------------------------------------!>
+
+<!--------------------------------------------------------------------------------------------!>
+
+<Modal @ref="SupplierModal" Title="Supplier Creation" Size="ModalSize.Large">
+    <BodyTemplate>
+        <EditForm EditContext="@editContext" OnValidSubmit="AddSupplier">
+            <DataAnnotationsValidator />
+
+        <div class="form-group row mb-1">
+            <label class="col-md-2 col-form-label" style="white-space: nowrap;">Supplier Name: <span class="text-danger">*</span></label>
+            <div class="col-md-5">
+                <TextInput @bind-Value="newSupplier.SupplierName" Placeholder="Enter supplier name" class="form-control" />
+                <ValidationMessage For="@(() => newSupplier.SupplierName)" />
+            </div>
+
+            <label class="col-md-1 col-form-label" style="white-space: nowrap;">Email: <span class="text-danger">*</span></label>
+            <div class="col-md-4">
+                <TextInput @bind-Value="newSupplier.SupplierEmail" Placeholder="Enter email" class="form-control" />
+                <ValidationMessage For="@(() => newSupplier.SupplierEmail)" />
+            </div>
+        </div>
+
+        <div class="form-group row mb-1">
+            <label class="col-md-2 col-form-label">Contact No.: <span class="text-danger">*</span></label>
+        <div class="col-md-5">
+            <div class="input-group">
+                <span class="input-group-text">+63</span>
+                <TextInput @bind-Value="newSupplier.SupplierContactNum" Placeholder="Enter contact number" class="form-control" />
+            </div>
+            <ValidationMessage For="@(() => newSupplier.SupplierContactNum)" />
+        </div>
+
+
+            <label class="col-md-1 col-form-label" style="white-space: nowrap;">Industry: <span class="text-danger">*</span></label>
+            <div class="col-md-4">
+                <TextInput @bind-Value="newSupplier.Industry" Placeholder="Enter industry" class="form-control" />
+                <ValidationMessage For="@(() => newSupplier.Industry)" />
+            </div>
+        </div>
+
+        <div class="form-group row mb-1">
+            <label class="col-md-2 col-form-label">Address: <span class="text-danger">*</span></label>
+            <div class="col-md-10">
+                <TextInput @bind-Value="newSupplier.SupplierAddress" Placeholder="Enter supplier address" class="form-control" />
+                <ValidationMessage For="@(() => newSupplier.SupplierAddress)" />
+            </div>
+        </div>
+        <div class="row modal-footer">
+            <div class="col-md-12 text-right">
+                <Button Type="ButtonType.Submit" Color="ButtonColor.Dark" Class="float-end" Disabled="@isLoading">
+                    @(isLoading ? "Submitting..." : "Submit")
+                </Button>
+                <Button Type="ButtonType.Button" Color="ButtonColor.Dark" Class="float-end me-2" @onclick="ResetForm">Reset</Button>
+                <Button Color="ButtonColor.Danger" @onclick="OnHideModalClick" Class="float-end me-2">Close</Button>
+            </div>
+        </div>
+
+
+            @if (!string.IsNullOrEmpty(successMessage))
+            {
+                <div class="alert alert-success mt-3">@successMessage</div>
+            }
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger mt-3">@errorMessage</div>
+            }
+        </EditForm>
+    </BodyTemplate>
+</Modal>
+
+
+
+<!--------------------------------------------------------------------------------------------!>
+
+
+
+<!--------------------------------------------------------------------------------------------!>
+<!-- Supplier Grid -->
+@if (Supplier == null)
+{
+<PlaceholderContainer Animation="PlaceholderAnimation.Glow">
+    <Placeholder Width="PlaceholderWidth.Col12" style="height: 50px; margin-bottom: 10px;"/>
+    <Placeholder Width="PlaceholderWidth.Col12" style="height: 30px; margin-bottom: 10px;"/>
+    <Placeholder Width="PlaceholderWidth.Col12" style="height: 30px; margin-bottom: 10px;"/>
+    <Placeholder Width="PlaceholderWidth.Col12" style="height: 30px; margin-bottom: 10px;"/>
+    <Placeholder Width="PlaceholderWidth.Col12" style="height: 30px; margin-bottom: 10px;"/>
+    <Placeholder Width="PlaceholderWidth.Col12" style="height: 30px; margin-bottom: 10px;"/>
+    
+</PlaceholderContainer>
+
+}
+else
+{
+    <Grid TItem="Supplier"
+        AllowSorting="true"
+        AllowPaging="true"
+        PageSize="7"
+        Data="@Supplier"
+        HeaderRowCssClass="bg-primary text-white border-bottom-0"
+        Responsive="true"
+        Class="table table-hover custom-grid table-striped"
+        SelectionMode="GridSelectionMode.Multiple"
+        SelectedItemsChanged="OnSelectedSuppliersChanged"
+        AllowSelection="true">
+        <GridColumns>
+
+            <GridColumn TItem="Supplier" HeaderText="Supplier Id" SortKeySelector="S => S.SupplierId" Context="S">
+                SUP@(S.SupplierId)
+            </GridColumn>
+
+            <GridColumn TItem="Supplier" HeaderText="Name" SortKeySelector="S => S.SupplierName" Context="S">
+                @S.SupplierName
+            </GridColumn>
+
+            <GridColumn TItem="Supplier" HeaderText="Address" SortKeySelector="S => S.SupplierAddress" Context="S">
+                @S.SupplierAddress
+            </GridColumn>
+            
+            <GridColumn TItem="Supplier" HeaderText="Contact No." SortKeySelector="S => S.SupplierContactNum" Context="S">
+                @S.SupplierContactNum
+            </GridColumn>
+                
+            <GridColumn TItem="Supplier" HeaderText="Email" SortKeySelector="S => S.SupplierEmail" Context="S">
+                @S.SupplierEmail
+            </GridColumn>
+
+            <GridColumn TItem="Supplier" HeaderText="Industry" SortKeySelector="S => S.Industry" Context="S">
+                @S.Industry
+            </GridColumn>
+
+            <GridColumn TItem="Supplier" HeaderText="Edit" Context="S">
+                <Tooltip Class="me-4" Title="Edit Item">
+                    <Icon Name="IconName.PencilSquare" class="fs-6" style="cursor: pointer;" @onclick="() => OpenOffcanvas(S)" />
+                </Tooltip>
+            </GridColumn>
+        </GridColumns>
+        <GridTemplates>
+            <GridEmptyDataTemplate TItem="Supplier">
+                <div class="text-center">
+                    <p>No Supplier records found.</p>
+                </div>
+            </GridEmptyDataTemplate>
+        </GridTemplates>
+    </Grid>
+}
+
+@if (!string.IsNullOrEmpty(successMessage))
+{
+    <div class="alert alert-success mt-3">@successMessage</div>
+}
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger mt-3">@errorMessage</div>
+}
+
+<!-- Confirm Delete Modal for ItemsMaster -->
+<Modal @ref="deleteConfirmationModalSupplier" Title="Confirm Deletion" Size="ModalSize.Regular">
+    <BodyTemplate>
+        <p>Are you sure you want to delete the selected Supplier(s)?</p>
+    </BodyTemplate>
+    <FooterTemplate>
+        <Button Color="ButtonColor.Danger" @onclick="DeleteSelectedSuppliers">Delete</Button>
+    </FooterTemplate>
+</Modal>
+
+<!--------------------------------------------------------------------------------------------!>
+<!--Confirm Item Delete Modal-->
+<Modal @ref="deleteConfirmationModal" Title="Confirm Deletion">
+    <BodyTemplate>
+        <p>Are you sure you want to delete this item?</p>
+    </BodyTemplate>
+
+    <FooterTemplate>
+        <Button Color="ButtonColor.Danger" @onclick="DeleteItem">Delete Item</Button>
+
+    </FooterTemplate>
+</Modal>
+
+<Offcanvas @ref="offcanvas" Title="Purchase Details">
+    <BodyTemplate>
+        <div>
+
+            <p class="mb-0"><strong>Supplier Id:</strong></p>
+            <InputNumber @bind-Value="selectedSupplierId" disabled class="mb-2 form-control" />
+            
+            <label class="mb-2">
+                <input type="checkbox" @bind="isEditingEnabled" />
+                Enable updates (Check to edit fields)
+            </label>
+
+            <p class="mb-0"><strong>Name:</strong></p>
+            <InputText @bind-Value="selectedSupplierName" disabled=@(!isEditingEnabled) class="form-control mb-2" />
+
+            <p class="mb-0"><strong>Address:</strong></p>
+            <InputText @bind-Value="selectedAddress" disabled=@(!isEditingEnabled) class="form-control mb-2" />
+
+            <p class="mb-0"><strong>Contact No.:</strong></p>
+            <InputText @bind-Value="selectedContactNo" disabled=@(!isEditingEnabled) class="mb-2 form-control" />
+
+            <p class="mb-0"><strong>Email:</strong></p>
+            <InputText @bind-Value="selectedEmail" disabled=@(!isEditingEnabled) class="form-control mb-2" />
+
+            <p class="mb-0"><strong>Industry:</strong></p>
+            <InputText @bind-Value="selectedIndustry" disabled=@(!isEditingEnabled) class="form-control mb-2" />   
+        </div>    
+    </BodyTemplate>
+
+    <FooterTemplate>
+        <div class="d-flex justify-content-end">
+            <Button class="float-end" Color="ButtonColor.Dark" @onclick="UpdateSupplier" disabled=@(!isEditingEnabled)>Update Item</Button>
+        </div>
+    </FooterTemplate>
+</Offcanvas>
+
+<!--------------------------------------------------------------------------------------------!>
+
+<!--Toast When Item is deleted-->
+<Toasts class="p-3" Messages="messages" AutoHide="true" StackLength="3" Placement="ToastsPlacement.TopRight" />
+
+<!--------------------------------------------------------------------------------------------!>
+
+@code {
+    [Inject] ModalService ModalService { get; set; } = default!;
+
+//--------------------------------------------------------------------------------------------    
+
+    // Offcanvas, Delete Item, Confirm delete, Toast, OnRoleDoubleClick variables
+    private Offcanvas offcanvas = default!;
+    private Modal deleteConfirmationModal = default!;
+    private Modal deleteConfirmationModalCat = default!;
+    private int selectedSupplierId;
+    private string selectedSupplierName = string.Empty;
+    private string selectedEmail = string.Empty;
+    private string selectedIndustry = string.Empty;
+    private string? selectedContactNo;
+    private string selectedStatus = string.Empty;
+    private decimal? selectedPurchasePrice;
+    private string selectedAddress = string.Empty;
+    private string selectedItemImage = string.Empty; // Base64 Image String
+    private bool isEditingEnabled = false;
+
+    @* Off canvas On row double click *@
+
+//--------------------------------------------------------------------------------------------  
+    //For deleting item
+    private async Task ConfirmDelete()
+    {
+        await deleteConfirmationModal.ShowAsync();
+    }
+    private async Task DeleteItem()
+    {
+        if (selectedSupplierId > 0)
+        {
+            string deletedItemName = selectedSupplierName; // Store name before deletion
+
+            bool success = await ApiComm.DeleteItemAsync(selectedSupplierId);
+            if (success)
+            {
+                // Refresh the item list after deletion
+                items = await ApiComm.GetItemsAsync();
+                await offcanvas.HideAsync(); // Close the offcanvas
+
+                // Show toast notification with actual item name
+                ShowMessage(ToastType.Danger, deletedItemName);
+            }
+            else
+            {
+                Console.WriteLine("Failed to delete item");
+            }
+        }
+        await deleteConfirmationModal.HideAsync();
+    }
+//--------------------------------------------------------------------------------------------  
+    //For updating item
+private async Task UpdateSupplier()
+{
+    var updatedSupplier = new Supplier
+    {
+        SupplierId = selectedSupplierId,
+        SupplierName = selectedSupplierName,
+        SupplierAddress = selectedAddress,
+        SupplierContactNum = selectedContactNo,
+        SupplierEmail = selectedEmail,
+        Industry = selectedIndustry,
+    };
+
+    bool success = await ApiComm.UpdateSupplierAsync(updatedSupplier);
+    if (success)
+    {
+        // Refresh purchase list if needed
+        Supplier = await ApiComm.GetSuppliersAsync(); 
+
+        await offcanvas.HideAsync(); // Close the offcanvas
+        ShowMessage(ToastType.Success, $"Updated {selectedSupplierName} successfully!");
+    }
+    else
+    {
+        Console.WriteLine("Failed to update purchase");
+    }
+}
+
+private async Task OpenOffcanvas(Supplier supplier)
+{
+    selectedSupplierId = supplier.SupplierId;
+    selectedSupplierName = supplier.SupplierName;
+    selectedAddress = supplier.SupplierAddress;
+    selectedContactNo = supplier.SupplierContactNum;
+    selectedEmail = supplier.SupplierEmail;
+    selectedIndustry = supplier.Industry;
+
+    
+    isEditingEnabled = false;
+
+    await offcanvas.ShowAsync();
+}
+
+//--------------------------------------------------------------------------------------------  
+    @* For item table update status *@
+    private void SetSelectedStatus(string status)
+    {
+        selectedStatus = status;
+    }
+//--------------------------------------------------------------------------------------------  
+    @* For toast *@
+    List<ToastMessage> messages = new List<ToastMessage>();
+//--------------------------------------------------------------------------------------------  
+    @* Update and delete item toast *@
+    private async void ShowMessage(ToastType toastType, string itemName)
+    {
+        string title = toastType == ToastType.Success ? "Item Updated" : "Item Deleted";
+        string action = toastType == ToastType.Success ? "updated" : "deleted";
+
+        var toast = new ToastMessage
+        {
+            Type = toastType,
+            Title = title,
+            HelpText = $"{DateTime.Now}",
+            Message = $"You {action} the item '{itemName}' at {DateTime.Now}.",
+        };
+
+        messages.Add(toast);
+        StateHasChanged(); // Force UI update
+
+        // Remove toast after 5 seconds
+        await Task.Delay(6000);
+        messages.Remove(toast);
+        StateHasChanged(); // Update UI again to reflect removal
+    }
+//--------------------------------------------------------------------------------------------  
+    //For status change in Grid (Item table)
+    private async Task OnStatusChanged(Items item)
+    {
+        bool success = await ApiComm.UpdateItemAsync(item);
+
+        if (success)
+        {
+            // Refresh the item list so that the UI reflects the change
+            items = await ApiComm.GetItemsAsync();
+            ShowMessage(ToastType.Success, item.ItemModel);
+        }
+        else
+        {
+            ShowMessage(ToastType.Warning, item.ItemModel);
+            Console.WriteLine("Failed to update item");
+        }
+        // Refresh the UI.
+        StateHasChanged();
+    }
+//------------------------------------------------------------------------    
+
+    // Data and form, Add Item, pagination, resfresh page, open-close add item modal variables
+    private List<Items> items = new();
+    private List<Category> categories = new();
+    private List<ItemsMaster> ItemMasters = new();
+    private List<Supplier> Supplier = new();
+
+    private Items newItem = new();
+    private Category newCategory = new();
+    private ItemsMaster newItemsMaster = new();
+    private Supplier newSupplier = new();
+
+    private EditContext? editContext;
+    private EditContext? categoryEditContext;
+
+    private string successMessage = "";
+    private string errorMessage = "";
+    private bool isLoading = false;
+    private Modal Modal = default!;
+    private Modal CatsModal = default!;
+    private Modal deleteConfirmationModalSupplier = default!;
+    private Modal SupplierModal = default!;
+
+    //Load items table
+    protected override async Task OnInitializedAsync()
+    {
+        // Load items once.
+        Supplier = null; // Ensures "Loading..." appears
+        StateHasChanged(); // Forces UI to update immediately
+        //items = await ApiComm.GetItemsAsync();
+        Supplier = await ApiComm.GetSuppliersAsync();
+        editContext = new EditContext(newSupplier);
+        categoryEditContext = new EditContext(newCategory);
+    }
+//--------------------------------------------------------------------------------------------  
+//Quantity for batch add item
+private int quantity = 1;
+//--------------------------------------------------------------------------------------------  
+    //For adding item
+    private async Task AddSupplier()
+    {
+        // Clear any previous messages.
+        successMessage = "";
+        errorMessage = "";
+        isLoading = true;
+
+        bool overallSuccess = true;
+
+        // For Supplier, we post just one record.
+        bool success = await ApiComm.AddSupplierAsync(newSupplier);
+        Console.WriteLine($"Adding Supplier: {newSupplier.SupplierName}");
+        if (!success)
+        {
+            overallSuccess = false;
+            Console.WriteLine($"Failed to add Supplier with ID: {newSupplier.SupplierId}");
+        }
+
+        if (overallSuccess)
+        {
+            // Display a success message using the SupplierName.
+            ShowAddSupplierMessage(newSupplier.SupplierName);
+
+            // Reset newSupplier and its EditContext.
+            newSupplier = new Supplier();
+            editContext = new EditContext(newSupplier);
+
+            // Refresh the list of Suppliers.
+            Supplier = await ApiComm.GetSuppliersAsync();
+        }
+
+        isLoading = false;
+    }
+
+    //--------------------------------------------------------------------------------------------  
+    // Toast for adding a supplier
+    private async void ShowAddSupplierMessage(string supplierName)
+    {
+        var toast = new ToastMessage
+        {
+            Type = ToastType.Success,
+            Title = "Supplier Added",
+            HelpText = $"{DateTime.Now}",
+            Message = $"You added '{supplierName}' at {DateTime.Now}.",
+        };
+
+        messages.Add(toast);
+        StateHasChanged();
+
+        // Remove the toast after 6 seconds
+        await Task.Delay(6000);
+        messages.Remove(toast);
+        StateHasChanged();
+    }
+
+    //--------------------------------------------------------------------------------------------  
+    // Resetting the add supplier form
+    private void ResetForm()
+    {
+        newSupplier = new Supplier();
+        editContext = new EditContext(newSupplier);
+        successMessage = "";
+        errorMessage = "";
+        Console.WriteLine("Supplier form reset.");
+    }
+
+//--------------------------------------------------------------------------------------------  
+    //For insert image
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file != null)
+        {
+            using var ms = new System.IO.MemoryStream();
+            await file.OpenReadStream(15 * 1024 * 1024).CopyToAsync(ms);
+            byte[] fileBytes = ms.ToArray();
+            
+            selectedItemImage = $"data:image/png;base64,{Convert.ToBase64String(fileBytes)}";
+            newItem.ItemImageBase64 = Convert.ToBase64String(fileBytes);
+
+        }
+    }
+//--------------------------------------------------------------------------------------------  
+    //For showing and hiding modal
+    private async Task OnShowModalClick()
+    {
+        await SupplierModal.ShowAsync();
+    }
+
+    private async Task OnHideModalClick()
+    {
+        await SupplierModal.HideAsync();
+    }
+
+//--------------------------------------------------------------------------------------------  
+
+
+    private async Task OnShowCatsModalClick()
+    {
+        await CatsModal.ShowAsync();
+    }
+
+    private async Task OnHideCatsModalClick()
+    {
+        await CatsModal.HideAsync();
+    }
+
+//--------------------------------------------------------------------------------------------  
+    private async Task OnShowSupplierModalClick()
+    {
+        await SupplierModal.ShowAsync();
+    }
+
+    private async Task OnHideSupplierModalClick()
+    {
+        await SupplierModal.HideAsync();
+    }
+
+//--------------------------------------------------------------------------------------------  
+
+
+    private async Task OnShowCatsDeleteModalClick()
+    {
+        await deleteConfirmationModalCat.ShowAsync();
+    }
+
+    private async Task OnHideCatsDeleteModalClick()
+    {
+        await deleteConfirmationModalCat.HideAsync();
+    }
+
+
+
+//--------------------------------------------------------------------------------------------  
+// HashSet for tracking selected ItemMasters.
+private HashSet<Supplier> SelectedSuppliers = new();
+
+// Called when the grid selection changes.
+private Task OnSelectedSuppliersChanged(HashSet<Supplier> selectedSuppliers)
+{
+    SelectedSuppliers = selectedSuppliers;
+    return Task.CompletedTask;
+}
+
+// Show the confirmation modal for deletion.
+//---------------------------------------------------------------------------------
+private async Task OnShowSupplierDeleteModalClick()
+{
+    await deleteConfirmationModalSupplier.ShowAsync();
+}
+// Delete all selected suppliers.
+private async Task DeleteSelectedSuppliers()
+{
+    foreach (var supplier in SelectedSuppliers.ToList())
+    {
+        bool success = await ApiComm.DeleteSupplierAsync(supplier.SupplierId);
+        if (success)
+        {
+            // Optionally remove from UI list immediately.
+            ShowMessage(ToastType.Danger, supplier.SupplierName);
+            Supplier.RemoveAll(s => s.SupplierId == supplier.SupplierId);
+        }
+        else
+        {
+            errorMessage = $"Failed to delete Supplier with ID {supplier.SupplierId}.";
+            // Optionally break or continue based on your error strategy.
+        }
+    }
+
+    // Refresh the list.
+    Supplier = await ApiComm.GetSuppliersAsync();
+    // Clear the selection.
+    SelectedSuppliers.Clear();
+    await deleteConfirmationModalSupplier.HideAsync();
+}
+
+}
+<!---More code here--->

@@ -1,0 +1,2640 @@
+﻿@page "/booking"
+@rendermode InteractiveServer
+@inject ToastService ToastService
+@inject ApiComm ApiComm
+@inject NavigationManager Navigation
+@using BlazorBootstrap.Components
+@using System.ComponentModel.DataAnnotations
+@inject IJSRuntime JS
+
+
+
+<PageTitle>Booking</PageTitle>
+<div class="d-flex justify-content-between align-items-center mt-1 my-3">
+    <h1>Booking</h1>
+    <div class="d-flex align-items-center">
+        @if (Bheader == null) {
+            <PlaceholderContainer Animation="PlaceholderAnimation.Glow">
+                <Placeholder Width="PlaceholderWidth.Col12" style="height: 40px; width: 20%;" />
+            </PlaceholderContainer>
+        } else {
+            <Button Color="ButtonColor.Dark" @onclick="OnShowGridModalClick" Class="me-2">Add Booking</Button>
+            <Button Color="ButtonColor.Dark" @onclick="OnShowInquireModalClick" Class="me-2">Inquire Items</Button>
+            <Button Color="ButtonColor.Dark" @onclick="OpenOffcanvas">Filter</Button>
+        }
+    </div>
+</div>
+
+<Modal @ref="GridModal" Title="Booking Creation" Size="ModalSize.ExtraLarge" Class="modal-size fade-in">
+    <BodyTemplate>
+
+    <EditForm EditContext="editContextBookingModal">
+        <DataAnnotationsValidator />
+            <div class="container mb-1 overflow-hidden">
+                <div class="row flex-nowrap">
+                    <!-- Left Column -->
+                    <div class="col-md-7">
+                        <!-- Booking Reference -->
+                        <div class="row mb-1">
+                            <label for="BHeaderCode" class="col-sm-3 col-form-label">Booking Ref.</label>
+                            <div class="col-sm-3">
+                                <div class="input-group">
+                                    <span class="input-group-text">BKN</span>
+                                    <InputNumber id="BHeaderCode" @bind-Value="newBheader.BHeaderCode" class="form-control" disabled />
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Date of Booking -->
+                        <div class="row mb-1">
+                            <label for="DateOfBooking" class="col-sm-3 col-form-label">
+                                Booking Date: <span class="text-danger">*</span>
+                            </label>
+                            <div class="col-sm-4">
+                                        <InputDate id="DateOfBooking"
+                                        @bind-Value="newBheader.DateOfBooking"
+                                        class="form-control"
+                                        @attributes="@(new Dictionary<string, object> { { "min", Today.ToString("yyyy-MM-dd") } })" />
+                                <ValidationMessage style="font-size: 12px ;" For="@(() => newBheader.DateOfBooking)" />
+                            </div>
+                        </div>
+
+                        <div class="row mb-1">
+                            <label for="DateofActivity" class="col-sm-3 col-form-label">
+                                Start Date: <span class="text-danger">*</span>
+                            </label>
+                                <div class="col-sm-4 d-flex align-items-center">
+                                    <InputDate id="DateofActivity"
+                                            @bind-Value="newBheader.ActivityDate"
+                                            class="form-control col-sm-3"
+                                            @attributes="@(new Dictionary<string, object> { { "min", Today.ToString("yyyy-MM-dd") } })" />
+                                    <input id="TimeOfActivity" type="time" class="form-control col-auto ms-2" @bind="newBheader.ActivityTime" />
+                                </div>
+                                <ValidationMessage style="margin-left: 160px;font-size: 12px ;" For="@(() => newBheader.ActivityDate)" />
+                        </div>
+                        <!-- End Date and End Time -->
+                        <div class="row mb-1">
+                            <label for="DateofActivity" class="col-sm-3 col-form-label">
+                                End Date: <span class="text-danger">*</span>
+                            </label>
+                                <div class="col-sm-4 d-flex align-items-center">
+                                    <InputDate id="EndDate"
+                                            @bind-Value="newBheader.EndDate"
+                                            class="form-control col-sm-3"
+                                            @attributes="@(new Dictionary<string, object> { { "min", newBheader.ActivityDate?.AddDays(1).ToString("yyyy-MM-dd") } })" />
+                                    <input id="EndTime" type="time" class="form-control col-auto ms-2" @bind="newBheader.EndTime" />
+                                </div>
+                                <ValidationMessage style="margin-left: 160px;font-size: 12px ;" For="@(() => newBheader.EndDate)" />
+                        </div>
+
+                        <!-- Status -->
+                        <div class="row mb-1">
+                            <label for="Status" class="col-sm-3 col-form-label">
+                                Status: <span class="text-danger">*</span>
+                            </label>
+                            <div class="col-sm-3">
+                                <Dropdown Color="DropdownColor.Dark" Direction="DropdownDirection.DropdownCentered">
+                                    <DropdownToggleButton>@(newBheader.Status ?? "Select Status")</DropdownToggleButton>
+                                    <DropdownMenu>
+                                        <DropdownItem @onclick='() => SetStatusValue("Waiting")'>Waiting</DropdownItem>
+                                        <DropdownItem @onclick='() => SetStatusValue("On Going")'>On Going</DropdownItem>
+                                    </DropdownMenu>
+                                </Dropdown> 
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column -->
+                    <div class="col-md-6">
+                        <!-- Customer -->
+                        <div class="row mb-1">
+                            <label for="Customer" class="col-sm-3 col-form-label">
+                                Customer: <span class="text-danger">*</span>
+                            </label>
+                            <div class="col-sm-7">
+                                <InputText id="Customer" @bind-Value="EnteredCustomer" class="form-control" />
+                            </div>
+                        </div>
+                        <!-- City -->
+                        <div class="row mb-1">
+                            <label for="City" class="col-sm-3 col-form-label">Location:</label>
+                            <div class="col-sm-7">
+                                <InputText id="City" @bind-Value="newBheader.City" class="form-control" />
+                            </div>
+                        </div>
+                        <!-- Address -->
+                        <div class="row mb-1">
+                            <label for="Address" class="col-sm-3 col-form-label">Address:</label>
+                            <div class="col-sm-7">
+                                <InputText id="Address" @bind-Value="newBheader.Address" class="form-control" />
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+    </EditForm>
+<!--------------------------------------------------------------------------------------------!>
+
+        <!-- PurchaseDetails Grid Section -->
+<Grid @ref="gridRef"
+    TItem="BookingDetails"
+    AllowSorting="true"
+    AllowPaging="true"
+    PageSize="5"
+    Data="@BDetails"
+    HeaderRowCssClass="bg-primary text-white border-bottom-0"
+    Responsive="true"
+    Class="table table-hover custom-grid table-striped">
+    <GridColumns>
+        <GridColumn TItem="BookingDetails" HeaderText="Inventory Code" SortKeySelector="Bd => Bd.InventoryCode">
+            <AutoComplete TItem="Inventories"
+                @bind-Value="context.SelectedInventoryDisplay"
+                DataProvider="InventoryDataProvider"
+                PropertyName="DisplayText"
+                Placeholder="Search by Inventory Code..."
+                OnChanged="@(selectedItem => OnInventoryAutoCompleteChanged(selectedItem, context))"/>
+        </GridColumn>
+
+        <GridColumn TItem="BookingDetails" HeaderText="Description" SortKeySelector="Bd => Bd.Description">
+            <AutoComplete TItem="Inventories"
+                @bind-Value="context.Description"
+                DataProvider="InventoryDataProvider"
+                PropertyName="Description"
+                Placeholder="Search by Description..."
+                disabled
+                OnChanged="@(selectedItem => OnInventoryAutoCompleteChanged(selectedItem, context))" />
+        </GridColumn>
+
+        <GridColumn TItem="BookingDetails" HeaderText="Quantity" SortKeySelector="Bd => Bd.Quantity">
+            <InputNumber disabled @bind-Value="context.Quantity" class="form-control" Placeholder="Quantity..."/>
+        </GridColumn>
+
+        <GridColumn TItem="BookingDetails" HeaderText="">
+            <Tooltip Color="TooltipColor.Danger" Class="me-4" Title="Delete">
+                <Icon Color="IconColor.Danger" Name="IconName.Trash3Fill" class="fs-5" style="cursor: pointer;" @onclick="() => RemoveRow(context.BDetailsCode)"/>
+            </Tooltip>
+        </GridColumn>
+    </GridColumns>
+</Grid>
+
+<!--------------------------------------------------------------------------------------------!>
+
+<!-- Grid Buttons -->
+<div class="mt-3 modal-footer p-2">
+    <Button Color="ButtonColor.Dark" class="btn btn-primary me-2" @onclick="AddEmptyRow">Add Empty Row</Button>
+    <Button Color="ButtonColor.Dark" @onclick="HandleSubmitBooking" Class="float-end me-2">
+        Submit
+    </Button>
+    <Button Color="ButtonColor.Danger" @onclick="OnhideGridModalClick" Class="float-end me-2">
+        Close
+    </Button>
+</div>
+    </BodyTemplate>
+</Modal>
+
+<!--------------------------------------------------------------------------------------------!>
+
+
+
+
+@* <Grid TItem="BookingHeader"
+    AllowSorting="true"
+    AllowPaging="true"
+    PageSize="5"
+    Data="@Bheader"
+    HeaderRowCssClass="bg-primary text-white border-bottom-0"
+    Responsive="true"
+    Class="table table-hover custom-grid table-striped"
+    SelectionMode="GridSelectionMode.Single"
+    SelectedItemsChanged="OnSelectedBookingItemsChanged"
+    AllowSelection="true">
+    <GridColumns>
+        <GridColumn TItem="BookingHeader" HeaderText="Booking No." SortKeySelector="bh => bh.BHeaderCode" Context="bh">
+            BKN@(bh.BHeaderCode)
+        </GridColumn>
+        <GridColumn TItem="BookingHeader" HeaderText="Customer" SortKeySelector="bh => bh.Customer" Context="bh">
+            @bh.Customer
+        </GridColumn>
+        <GridColumn TItem="BookingHeader" HeaderText="Date" SortKeySelector="bh => bh.DateOfBooking" Context="bh">
+            @bh.DateOfBooking
+        </GridColumn>
+    </GridColumns>
+</Grid>
+
+@if (SelectedBHeaderCode != null)
+{
+    <h4>Booking Details for Booking #BK@(SelectedBHeaderCode)</h4>
+    <Grid @ref="gridBDetailsRef"
+        TItem="BookingDetails"
+        AllowSorting="true"
+        AllowPaging="true"
+        PageSize="5"
+        Data="@FilteredBookingDetails"
+        HeaderRowCssClass="bg-primary text-white border-bottom-0"
+        Responsive="true"
+        Class="table table-hover custom-grid table-striped">
+        <GridColumns>
+            <GridColumn TItem="BookingDetails" HeaderText="Detail Id" SortKeySelector="bd => bd.BDetailsCode">
+                BKD@(context.BDetailsCode)
+            </GridColumn>
+            <GridColumn TItem="BookingDetails" HeaderText="Booking No." SortKeySelector="bd => bd.BHeaderCode">
+                BKN@(context.BHeaderCode)
+            </GridColumn>
+            <GridColumn TItem="BookingDetails" HeaderText="Inventory Code" SortKeySelector="bd => bd.InventoryCode">
+                ITM@(context.InventoryCode)
+            </GridColumn>
+            <GridColumn TItem="BookingDetails" HeaderText="Description" SortKeySelector="bd => bd.Description">
+                @context.Description
+            </GridColumn>
+            <GridColumn TItem="BookingDetails" HeaderText="Quantity" SortKeySelector="bd => bd.Quantity">
+                @context.Quantity
+            </GridColumn>
+        </GridColumns>
+    </Grid>
+} *@
+
+@if (Bheader == null)
+{
+    <PlaceholderContainer Animation="PlaceholderAnimation.Glow">
+    <Placeholder Width="PlaceholderWidth.Col12" style="height: 50px; width: 25%;" />
+</PlaceholderContainer>
+}
+else if (!Bheader.Any())
+{
+    <p>No bookings found.</p>
+}
+else
+{
+<Tabs>
+
+        <Tab Title="All" Active="true">
+        <Content>
+            <div style="display: flex; flex-direction: row; height: 100%;" class="mb-2">
+                <div style="flex-grow: 1; max-height: 100%; padding-right: 10px; border-right: 1px solid #ddd; z-index: 999;">
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        @if (filteredBookings.Any())
+                        {
+                        @foreach (var booking in filteredBookings)
+                        {
+                            var borderColor = selectedBHeaderCode == booking.BHeaderCode ? "2px solid #006bb7" : "2px solid #ddd";
+                            var boxShadow = selectedBHeaderCode == booking.BHeaderCode 
+                                ? "0px 4px 10px rgba(0, 0, 0, 0.5)" // Darker shadow for selected
+                                : "1px 1px 4px rgba(0, 0, 0, 0.1)";
+
+                            <div style="cursor: pointer; border: @borderColor; padding: 12px; background: #fff; 
+                                        border-radius: 8px; transition: all .5s ease-in-out;
+                                        box-shadow:  @boxShadow;"
+                                @onclick="() => ShowBookingDetails(booking.BHeaderCode)">
+                                <div style="padding: 10px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <h4 style="font-size: 18px; font-weight: bold; margin-bottom: 5px;">
+                                            @booking.Customer
+                                        </h4>
+
+
+                                        <h5 style="gap: 5px;">
+                                            @if (booking.Status == "Waiting")
+                                            {
+                                                <Tooltip Color="TooltipColor.Danger" Class="me-4" Title="Generate Booking PDF">
+                                                    <div class="pdf-icon-wrapper"
+                                                        @onclick="@(() => GenerateBookingPDFAsync(booking))">
+                                                        <Icon Name="IconName.FileEarmarkPdfFill"
+                                                            class="fs-5 icon-inside" />
+                                                    </div>
+                                                </Tooltip>
+                                            }
+
+                                            @if (booking.Status == "On-Going")
+                                            {
+                                                <Tooltip Color="TooltipColor.Danger" Class="me-4" Title="Generate Release PDF">
+                                                    <div class="pdf-icon-wrapper"
+                                                        @onclick="@(() => GenerateReleasePDFAsync(booking))">
+                                                        <Icon Name="IconName.FileEarmarkPdfFill"
+                                                            class="fs-5 icon-inside" />
+                                                    </div>
+                                                </Tooltip>
+                                            }
+                                            @if (booking.Status == "Finished" && booking.CancelStatus == 0)
+                                            {
+                                                <Tooltip Color="TooltipColor.Danger" Class="me-4" Title="Generate Return PDF">
+                                                    <div class="pdf-icon-wrapper"
+                                                        @onclick="@(() => GenerateReturnPDFAsync(booking))">
+                                                        <Icon Name="IconName.FileEarmarkPdfFill"
+                                                            class="fs-5 icon-inside" />
+                                                    </div>
+                                                </Tooltip>
+
+
+                                            }
+                                            <Badge Color="@GetBadgeColor(booking.Status)" Style="@GetBadgeStyle(booking.Status)">
+                                                @booking.Status
+                                            </Badge>
+
+                                            @if (booking.CancelStatus == 1)
+                                            {
+                                                <Badge Color="@GetCancelBadgeColor(booking.CancelStatus)" Style="@GetCancelBadgeStyle(booking.CancelStatus)">
+                                                    Canceled
+                                                </Badge>
+                                            }
+                                        </h5>
+
+
+                                    </div>
+                                    <hr>
+                                    <p style="font-size: 14px; line-height: 1.5;">
+                                        <strong>Booking Date:</strong> @(booking.DateOfBooking?.ToString("yyyy-MM-dd") ?? "N/A") <br />
+                                        <strong>Start Date:</strong> @(booking.DateofActivity?.ToString("yyyy-MM-dd HH:mm") ?? "N/A") <br />
+                                        <strong>End Date:</strong> @(booking.EndofActivity?.ToString("yyyy-MM-dd HH:mm") ?? "N/A") <br />
+                                        <strong>City:</strong> @booking.City <br />
+                                        <strong>Address:</strong> @booking.Address
+                                    </p>
+                                </div>
+
+                                <div style="display: flex; justify-content: space-between; margin-top: 15px;">
+                                    <Button class="btn btn-dark" 
+                                            @onclick="() => OnShowReleaseModalClick(booking.BHeaderCode, booking.Customer)"
+                                            disabled="@(booking.Status == "On-Going")"
+                                            hidden="@(booking.Status != "Waiting")">
+                                        Release Item(s)
+                                    </Button>
+                                    <Button class="btn btn-primary" 
+                                            @onclick="() => OnShowReturnModalClick(booking.BHeaderCode, booking.Customer)"
+                                            disabled="@(booking.Status == "Waiting")"
+                                            hidden="@(booking.Status != "On-Going")">
+                                        Return Item(s)
+                                    </Button>
+
+                                    <Button Color="ButtonColor.Warning"
+                                            Class="float-end me-2"
+                                            Hidden="@(booking.Status != "Finished")"
+                                            @onclick="() => ShowArchiveModal(booking.BHeaderCode)">
+                                        Archive
+                                    </Button>
+
+                                    <Button Color="ButtonColor.Danger"
+                                            class="btn btn-primary" 
+                                            @onclick="() => OnShowCancelModalClick()"
+                                            hidden="@(booking.Status != "Waiting")">
+                                        Cancel Item(s)
+                                    </Button>
+                                    
+                                </div>
+                            </div>
+                            }
+                        }
+                        else
+                        {
+                            <!-- Empty state for the "On-Going" tab -->
+                            <div style="cursor: default; border: 1px solid #ddd; padding: 12px; background: #fff; 
+                                        border-radius: 8px; box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.1);">
+                                <div style="padding: 12px; text-align: center;">
+                                    <p style="font-size: 14px; color: #888;">No bookings found for On-Going status.</p>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <!-- Booking Details Card -->
+                    <div style="width: 50%; margin-left: 1%; padding: 15px; background: #fff; border-radius: 8px; 
+                            box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.1); position: sticky; top: 55px; height: fit-content;">
+                    <div style="padding: 12px;">
+                        @if (selectedBHeaderCode != null)
+                        {
+                            <h5 style="font-size: 18px; font-weight: bold; margin-bottom: 5px;">
+                                                        <Icon Color="IconColor.Danger" Name="IconName.PinAngleFill"/> Booking Overview
+                            </h5>
+                            <hr>
+
+                            <div class="details-wrapper @(BDetailsShow.Any() ? "show" : "")">
+
+                            @if (BDetailsShow.Any())
+                            {
+                                <ul style="padding-left: 0; list-style: none; font-size: 14px;">
+                                    @foreach (var detail in BDetailsShow)
+                                    {
+                                        <li style="margin-bottom: 8px;">
+                                            <strong style="font-weight: 600;">Inventory Code:</strong> @detail.InventoryCode <br />
+                                            <strong style="font-weight: 600;">Description:</strong> @detail.Description <br />
+                                            <strong style="font-weight: 600;">Quantity:</strong> @detail.Quantity
+                                        </li>
+                                    }
+                                </ul>
+
+                            }
+                            else
+                            {
+                                <p style="font-size: 14px;">No details found.</p>
+                            }
+                        </div>
+
+                        }
+                        else
+                        {
+                            <p style="font-size: 14px; color: #888;">Select a booking to see details.</p>
+                        }
+                    </div>
+                </div>
+                
+            </div>
+        </Content>
+    </Tab>
+    <Tab Title="Waiting">
+        <Content>
+            <div style="display: flex; flex-direction: row; height: 100%;" class="mb-2">
+                <div style="flex-grow: 1; max-height: 100%; padding-right: 10px; border-right: 1px solid #ddd; z-index: 999;">
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        @if (filteredBookings.Any(b => b.Status == "Waiting"))
+                        {
+                            @foreach (var booking in filteredBookings.Where(b => b.Status == "Waiting"))
+                            {
+                                var borderColor = selectedBHeaderCode == booking.BHeaderCode ? "2px solid #006bb7" : "1px solid #ddd";
+
+                                <div style="cursor: pointer; border: @borderColor; padding: 12px; background: #fff; 
+                                            border-radius: 8px; transition: all 0.2s ease-in-out;
+                                            box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.1);"
+                                    @onclick="() => ShowBookingDetails(booking.BHeaderCode)">
+                                    <div style="padding: 10px;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <h4 style="font-size: 18px; font-weight: bold; margin-bottom: 5px;">
+                                                @booking.Customer
+                                            </h4>
+                                            <h5>
+                                                <Badge Color="@GetBadgeColor(booking.Status)" Style="@GetBadgeStyle(booking.Status)">
+                                                    @booking.Status
+                                                </Badge>
+                                            </h5>
+                                        </div>
+                                        <hr>
+                                        <p style="font-size: 14px; line-height: 1.5;">
+                                            <strong>Booking Date:</strong> @(booking.DateOfBooking?.ToString("yyyy-MM-dd") ?? "N/A") <br />
+                                            <strong>Start Date:</strong> @(booking.DateofActivity?.ToString("yyyy-MM-dd HH:mm") ?? "N/A") <br />
+                                            <strong>End Date:</strong> @(booking.EndofActivity?.ToString("yyyy-MM-dd HH:mm") ?? "N/A") <br />
+                                            <strong>City:</strong> @booking.City <br />
+                                            <strong>Address:</strong> @booking.Address
+                                        </p>
+                                    </div>
+
+                                    <div style="display: flex; justify-content: space-between; margin-top: 15px;">
+                                        <Button class="btn btn-primary" 
+                                                @onclick="() => OnShowReleaseModalClick(booking.BHeaderCode, booking.Customer)"
+                                                disabled="@(booking.Status == "On-Going")"
+                                                hidden="@(booking.Status != "Waiting")">
+                                            Release Item(s)
+                                        </Button>
+                                        <Button class="btn btn-success" 
+                                                @onclick="() => OnShowReturnModalClick(booking.BHeaderCode, booking.Customer)"
+                                                disabled="@(booking.Status == "Waiting")"
+                                                hidden="@(booking.Status != "On-Going")">
+                                            Return Item(s)
+                                        </Button>
+
+                                        <Button Color="ButtonColor.Warning"
+                                                Class="float-end me-2"
+                                                Hidden="@(booking.Status != "Finished")"
+                                                @onclick="() => ShowArchiveModal(booking.BHeaderCode)">
+                                            Archive
+                                        </Button>
+
+                                        <Button Color="ButtonColor.Danger"
+                                            class="btn btn-primary" 
+                                            @onclick="() => OnShowCancelModalClick()"
+                                            hidden="@(booking.Status != "Waiting")">
+                                        Cancel Item(s)
+                                        </Button>
+                                        
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <!-- Empty state for the "Waiting" tab -->
+                            <div style="cursor: default; border: 1px solid #ddd; padding: 12px; background: #fff; 
+                                        border-radius: 8px; box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.1);">
+                                <div style="padding: 12px; text-align: center;">
+                                    <p style="font-size: 14px; color: #888;">No bookings found for Waiting status.</p>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <!-- Booking Details Card -->
+                    <div style="width: 50%; margin-left: 1%; padding: 15px; background: #fff; border-radius: 8px; 
+                            box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.1); position: sticky; top: 55px; height: fit-content;">
+                    <div style="padding: 12px;">
+                        @if (selectedBHeaderCode != null)
+                        {
+                            <h5 style="font-size: 18px; font-weight: bold; margin-bottom: 5px;">
+                                                        <Icon Color="IconColor.Danger" Name="IconName.PinAngleFill"/> Booking Overview
+                            </h5>
+                            <hr>
+                            @if (BDetailsShow.Any())
+                            {
+                                <ul style="padding-left: 0; list-style: none; font-size: 14px;">
+                                    @foreach (var detail in BDetailsShow)
+                                    {
+                                        <li style="margin-bottom: 8px;">
+                                            <strong style="font-weight: 600;">Inventory Code:</strong> @detail.InventoryCode <br />
+                                            <strong style="font-weight: 600;">Description:</strong> @detail.Description <br />
+                                            <strong style="font-weight: 600;">Quantity:</strong> @detail.Quantity
+                                        </li>
+                                    }
+                                </ul>
+
+                            }
+                            else
+                            {
+                                <p style="font-size: 14px;">No details found.</p>
+                            }
+                        }
+                        else
+                        {
+                            <p style="font-size: 14px; color: #888;">Select a booking to see details.</p>
+                        }
+                    </div>
+                </div>
+                
+            </div>
+        </Content>
+    </Tab>
+
+    <Tab Title="On-Going">
+        <Content>
+            <div style="display: flex; flex-direction: row; height: 100%;" class="mb-2">
+                <div style="flex-grow: 1; max-height: 100%; padding-right: 10px; border-right: 1px solid #ddd; z-index: 999;">
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        @if (filteredBookings.Any(b => b.Status == "On-Going"))
+                        {
+                            @foreach (var booking in filteredBookings.Where(b => b.Status == "On-Going"))
+                            {
+                                var borderColor = selectedBHeaderCode == booking.BHeaderCode ? "2px solid #006bb7" : "1px solid #ddd";
+
+                                <div style="cursor: pointer; border: @borderColor; padding: 12px; background: #fff; 
+                                            border-radius: 8px; transition: all 0.2s ease-in-out;
+                                            box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.1);"
+                                    @onclick="() => ShowBookingDetails(booking.BHeaderCode)">
+                                    <div style="padding: 10px;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <h4 style="font-size: 18px; font-weight: bold; margin-bottom: 5px;">
+                                                @booking.Customer
+                                            </h4>
+                                            <h5>
+                                                <Badge Color="@GetBadgeColor(booking.Status)" Style="@GetBadgeStyle(booking.Status)">
+                                                    @booking.Status
+                                                </Badge>
+                                            </h5>
+                                        </div>
+                                        <hr>
+                                        <p style="font-size: 14px; line-height: 1.5;">
+                                            <strong>Booking Date:</strong> @(booking.DateOfBooking?.ToString("yyyy-MM-dd") ?? "N/A") <br />
+                                            <strong>Start Date:</strong> @(booking.DateofActivity?.ToString("yyyy-MM-dd HH:mm") ?? "N/A") <br />
+                                            <strong>End Date:</strong> @(booking.EndofActivity?.ToString("yyyy-MM-dd HH:mm") ?? "N/A") <br />
+                                            <strong>City:</strong> @booking.City <br />
+                                            <strong>Address:</strong> @booking.Address
+                                        </p>
+                                    </div>
+
+                                    <div style="display: flex; justify-content: space-between; margin-top: 15px;">
+                                        <Button class="btn btn-primary" 
+                                                @onclick="() => OnShowReleaseModalClick(booking.BHeaderCode, booking.Customer)"
+                                                disabled="@(booking.Status == "On-Going")"
+                                                hidden="@(booking.Status != "Waiting")">
+                                            Release Item(s)
+                                        </Button>
+                                        <Button class="btn btn-success" 
+                                                @onclick="() => OnShowReturnModalClick(booking.BHeaderCode, booking.Customer)"
+                                                disabled="@(booking.Status == "Waiting")"
+                                                hidden="@(booking.Status != "On-Going")">
+                                            Return Item(s)
+                                        </Button>
+
+                                        <Button Color="ButtonColor.Danger"
+                                                Class="float-end me-2"
+                                                Hidden="@(booking.Status != "Finished")"
+                                                @onclick="() => ShowArchiveModal(booking.BHeaderCode)">
+                                            Archive
+                                        </Button>
+
+                                    </div>
+                                
+                                </div>
+                            }
+
+                        }
+                        else
+                        {
+                            <!-- Empty state for the "On-Going" tab -->
+                            <div style="cursor: default; border: 1px solid #ddd; padding: 12px; background: #fff; 
+                                        border-radius: 8px; box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.1);">
+                                <div style="padding: 12px; text-align: center;">
+                                    <p style="font-size: 14px; color: #888;">No bookings found for On-Going status.</p>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Booking Details Card -->
+                <div style="width: 50%; margin-left: 1%; padding: 15px; background: #fff; border-radius: 8px; 
+                            box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.1); position: sticky; top: 55px; height: fit-content;">
+                    <div style="padding: 12px;">
+                        @if (selectedBHeaderCode != null)
+                        {
+                            <h5 style="font-size: 18px; font-weight: bold; margin-bottom: 5px;">
+                                                        <Icon Color="IconColor.Danger" Name="IconName.PinAngleFill"/> Booking Overview
+                            </h5>
+                            <hr>
+                            @if (BDetailsShow.Any())
+                            {
+                                <ul style="padding-left: 0; list-style: none; font-size: 14px;">
+                                    @foreach (var detail in BDetailsShow)
+                                    {
+                                        <li style="margin-bottom: 8px;">
+                                            <strong style="font-weight: 600;">Inventory Code:</strong> @detail.InventoryCode <br />
+                                            <strong style="font-weight: 600;">Description:</strong> @detail.Description <br />
+                                            <strong style="font-weight: 600;">Quantity:</strong> @detail.Quantity
+                                        </li>
+                                    }
+                                </ul>
+
+                            }
+                            else
+                            {
+                                <p style="font-size: 14px;">No details found.</p>
+                            }
+                        }
+                        else
+                        {
+                            <p style="font-size: 14px; color: #888;">Select a booking to see details.</p>
+                        }
+                    </div>
+                </div>
+            </div>
+        </Content>
+    </Tab>
+
+    <Tab Title="Finished">
+        <Content>
+            <div style="display: flex; flex-direction: row; height: 100%;" class="mb-2">
+                <div style="flex-grow: 1; max-height: 100%; padding-right: 10px; border-right: 1px solid #ddd; z-index: 999;">
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        @if (filteredBookings.Any(b => b.Status == "Finished"))
+                        {
+                            @foreach (var booking in filteredBookings.Where(b => b.Status == "Finished"))
+                            {
+                                var borderColor = selectedBHeaderCode == booking.BHeaderCode ? "2px solid #006bb7" : "1px solid #ddd";
+
+                                <div style="cursor: pointer; border: @borderColor; padding: 12px; background: #fff; 
+                                            border-radius: 8px; transition: all 0.2s ease-in-out;
+                                            box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.1);"
+                                    @onclick="() => ShowBookingDetails(booking.BHeaderCode)">
+                                    <div style="padding: 10px;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <h4 style="font-size: 18px; font-weight: bold; margin-bottom: 5px;">
+                                                @booking.Customer
+                                            </h4>
+                                            <h5 style="display: flex; gap: 5px;">
+                                                <Badge Color="@GetBadgeColor(booking.Status)" Style="@GetBadgeStyle(booking.Status)">
+                                                    @booking.Status
+                                                </Badge>
+
+                                                @if (booking.CancelStatus == 1)
+                                                {
+                                                    <Badge Color="@GetCancelBadgeColor(booking.CancelStatus)" Style="@GetCancelBadgeStyle(booking.CancelStatus)">
+                                                        Canceled
+                                                    </Badge>
+                                                }
+                                            </h5>
+                                        </div>
+                                        <hr>
+                                        <p style="font-size: 14px; line-height: 1.5;">
+                                            <strong>Booking Date:</strong> @(booking.DateOfBooking?.ToString("yyyy-MM-dd") ?? "N/A") <br />
+                                            <strong>Start Date:</strong> @(booking.DateofActivity?.ToString("yyyy-MM-dd HH:mm") ?? "N/A") <br />
+                                            <strong>End Date:</strong> @(booking.EndofActivity?.ToString("yyyy-MM-dd HH:mm") ?? "N/A") <br />
+                                            <strong>City:</strong> @booking.City <br />
+                                            <strong>Address:</strong> @booking.Address
+                                        </p>
+                                    </div>
+
+                                    <div style="display: flex; justify-content: space-between; margin-top: 15px;">
+                                        <Button class="btn btn-primary" 
+                                                @onclick="() => OnShowReleaseModalClick(booking.BHeaderCode, booking.Customer)"
+                                                disabled="@(booking.Status == "On-Going")"
+                                                hidden="@(booking.Status != "Waiting")">
+                                            Release Item(s)
+                                        </Button>
+                                        <Button class="btn btn-success" 
+                                                @onclick="() => OnShowReturnModalClick(booking.BHeaderCode, booking.Customer)"
+                                                disabled="@(booking.Status == "Waiting")"
+                                                hidden="@(booking.Status != "On-Going")">
+                                            Return Item(s)
+                                        </Button>
+
+                                        <Button Color="ButtonColor.Warning"
+                                                Class="float-end me-2"
+                                                Hidden="@(booking.Status != "Finished")"
+                                                @onclick="() => ShowArchiveModal(booking.BHeaderCode)">
+                                            Archive
+                                        </Button>
+                                        
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <!-- Empty state for the "Finished" tab -->
+                            <div style="cursor: default; border: 1px solid #ddd; padding: 12px; background: #fff; 
+                                        border-radius: 8px; box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.1);">
+                                <div style="padding: 12px; text-align: center;">
+                                    <p style="font-size: 14px; color: #888;">No bookings found for Finished status.</p>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Booking Details Card -->
+                <div style="width: 50%; margin-left: 1%; padding: 15px; background: #fff; border-radius: 8px; 
+                        box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.1); position: sticky; top: 55px; height: fit-content;">
+                    <div style="padding: 12px;">
+                        @if (selectedBHeaderCode != null)
+                        {
+                            <h5 style="font-size: 18px; font-weight: bold; margin-bottom: 5px;">
+                                                        <Icon Color="IconColor.Danger" Name="IconName.PinAngleFill"/> Booking Overview
+                            </h5>
+                            <hr>
+                            @if (BDetailsShow.Any())
+                            {
+                                <ul style="padding-left: 0; list-style: none; font-size: 14px;">
+                                    @foreach (var detail in BDetailsShow)
+                                    {
+                                        <li style="margin-bottom: 8px;">
+                                            <strong style="font-weight: 600;">Inventory Code:</strong> @detail.InventoryCode <br />
+                                            <strong style="font-weight: 600;">Description:</strong> @detail.Description <br />
+                                            <strong style="font-weight: 600;">Quantity:</strong> @detail.Quantity
+                                        </li>
+                                    }
+                                </ul>
+
+                            }
+                            else
+                            {
+                                <p style="font-size: 14px;">No details found.</p>
+                            }
+                        }
+                        else
+                        {
+                            <p style="font-size: 14px; color: #888;">Select a booking to see details.</p>
+                        }
+                    </div>
+                </div>
+            </div>
+        </Content>
+    </Tab>
+
+
+    <Tab>
+        <TitleTemplate>
+        <Tooltip Color="TooltipColor.Danger" Title="Archived Bookings">
+            <Icon Color="IconColor.Warning" Name="IconName.Archive" class="fs-5" />
+        </Tooltip>
+        </TitleTemplate>
+        <Content>
+            <div style="width:100%; display: flex; flex-direction: row; height: 100%;" class="mb-2">
+                <div style="flex-grow: 1; max-height: 100%; z-index: 999;">
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        @if (filteredBookings.Any(b => b.Status == "Archived"))
+                        {
+                            @foreach (var booking in filteredBookings.Where(b => b.Status == "Archived"))
+                            {
+                                var borderColor = selectedBHeaderCode == booking.BHeaderCode ? "2px solid #006bb7" : "1px solid #ddd";
+
+                                <div style="cursor: pointer; border: @borderColor; padding: 12px; background: #fff; 
+                                            border-radius: 8px; transition: all 0.2s ease-in-out;
+                                            box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.1);"
+                                            @ondblclick="() => ShowBookingDetailsModal(booking.BHeaderCode)">
+                                    <div style="padding: 10px;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <h4 style="font-size: 18px; font-weight: bold; margin-bottom: 5px;">
+                                                @booking.Customer
+                                            </h4>
+                                            <h5 style="display: flex; gap: 5px;">
+                                                <Badge Color="@GetBadgeColor(booking.Status)" Style="@GetBadgeStyle(booking.Status)">
+                                                    @booking.Status
+                                                </Badge>
+
+                                                @if (booking.CancelStatus == 1)
+                                                {
+                                                    <Badge Color="@GetCancelBadgeColor(booking.CancelStatus)" Style="@GetCancelBadgeStyle(booking.CancelStatus)">
+                                                        Canceled
+                                                    </Badge>
+                                                }
+                                            </h5>
+                                        </div>
+                                        <hr>
+                                        <p style="font-size: 14px; line-height: 1.5;">
+                                            <strong>Booking Date:</strong> @(booking.DateOfBooking?.ToString("yyyy-MM-dd") ?? "N/A") <br />
+                                            <strong>Start Date:</strong> @(booking.DateofActivity?.ToString("yyyy-MM-dd HH:mm") ?? "N/A") <br />
+                                            <strong>End Date:</strong> @(booking.EndofActivity?.ToString("yyyy-MM-dd HH:mm") ?? "N/A") <br />
+                                            <strong>City:</strong> @booking.City <br />
+                                            <strong>Address:</strong> @booking.Address <br />
+                                            <strong>Archived At:</strong> @(booking.ArchiveDate?.ToString("yyyy-MM-dd HH:mm") ?? "N/A")
+                                        </p>
+                                    </div>
+
+                                    <div style="display: flex; justify-content: space-between; margin-top: 15px;">
+                                        <Button class="btn btn-primary" 
+                                                @onclick="() => OnShowReleaseModalClick(booking.BHeaderCode, booking.Customer)"
+                                                disabled="@(booking.Status == "On-Going")"
+                                                hidden="@(booking.Status != "Waiting")">
+                                            Release Item(s)
+                                        </Button>
+                                        <Button class="btn btn-success" 
+                                                @onclick="() => OnShowReturnModalClick(booking.BHeaderCode, booking.Customer)"
+                                                disabled="@(booking.Status == "Waiting")"
+                                                hidden="@(booking.Status != "On-Going")">
+                                            Return Item(s)
+                                        </Button>
+
+                                        <Button Color="ButtonColor.Warning"
+                                                Class="float-end me-2"
+                                                Hidden="@(booking.Status != "Finished")"
+                                                @onclick="() => ShowArchiveModal(booking.BHeaderCode)">
+                                            Archive
+                                        </Button>
+                                        
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <!-- Empty state for the "Finished" tab -->
+                            <div style="cursor: default; border: 1px solid #ddd; padding: 12px; background: #fff; 
+                                        border-radius: 8px; box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.1);">
+                                <div style="padding: 12px; text-align: center;">
+                                    <p style="font-size: 14px; color: #888;">No bookings found for Finished status.</p>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <Modal @ref="BookingDetailsModal" Title="Booking Overview" ModalSize="ModalSize.Large" Class="modal-size fade-in">
+                <BodyTemplate>
+                    <div style="padding: 12px;">
+                        @if (selectedBHeaderCode != null)
+                        {
+                            @if (BDetailsShow.Any())
+                            {
+                                <ul style="padding-left: 0; list-style: none; font-size: 14px;">
+                                    @foreach (var detail in BDetailsShow)
+                                    {
+                                        <li style="margin-bottom: 8px;">
+                                            <strong style="font-weight: 600;">Inventory Code:</strong> @detail.InventoryCode <br />
+                                            <strong style="font-weight: 600;">Description:</strong> @detail.Description <br />
+                                            <strong style="font-weight: 600;">Quantity:</strong> @detail.Quantity
+                                        </li>
+                                    }
+                                </ul>
+                            }
+                            else
+                            {
+                                <p style="font-size: 14px;">No details found.</p>
+                            }
+                        }
+                        else
+                        {
+                            <p style="font-size: 14px; color: #888;">Select a booking t o see details.</p>
+                        }
+                    </div>
+                </BodyTemplate>
+            </Modal>
+
+        </Content>
+    </Tab>
+    <!-- Filter Section -->
+    <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-end; position: sticky; right: 40px; top: 0px;">
+        <div style="display: flex; gap: 6px; align-items: center; margin-bottom: -110px; margin-top: 7px;">
+            
+            <!-- Search Input -->
+            <input type="text"
+                class="form-control form-control-sm"
+                placeholder="Search Customer..."
+                value="@customerSearch"
+                @oninput="OnCustomerSearchChanged" />
+
+            <!-- Filter Dropdown -->
+            <select class="form-select form-select-sm" @onchange="OnFilterFieldChanged">
+                <option value="DateOfBooking">Date Booked</option>
+                <option value="Customer">Customer Name</option>
+            </select>
+
+            <!-- Sort Dropdown -->
+            <select class="form-select form-select-sm" @onchange="OnSortOrderChanged">
+                <option value="asc">Ascending</option>
+                <option value="desc">Descending</option>
+            </select>
+
+        </div>
+    </div>
+
+
+</Tabs>
+
+}
+
+<Modal @ref="ReleaseModal" Title="Release Form" Size="ModalSize.Large" Class="modal-size fade-in">
+    <BodyTemplate>
+        <EditForm EditContext="editContextReleaseModal">
+            <DataAnnotationsValidator />
+            <div class="row">
+                <!-- First Column -->
+                <div class="col-md-6">
+                    <div class="row mb-1">
+                        <label for="Customer" class="text-nowrap col-sm-3 col-form-label" style="font-size: 13px;">Customer</label>
+                        <div class="col-sm-9">
+                            <InputText id="Customer" @bind-Value="Customer" class="form-control" style="font-size: 13px;" disabled />
+                        </div>
+                    </div>
+                    <div class="row mb-1">
+                        <label for="SelectedDate" class="text-nowrap col-sm-3 col-form-label" style="font-size: 13px;">Release Date</label>
+                        <div class="col-sm-4 d-flex align-items-center" style="width:159px;">
+                            <DateInput TValue="DateOnly?" @bind-Value="newRelease.SelectedDate" class="form-control" disabled/>
+                            <TimeInput TValue="TimeOnly?" @bind-Value="newRelease.SelectedTime" class="form-control col-auto ms-1" disabled/>
+                        </div>
+                    </div>
+
+                    <div class="row mb-1">
+                        <label for="SelectedDate" class="text-nowrap col-sm-3 col-form-label" style="font-size: 13px;">Return Date</label>
+                        <div class="col-sm-4 d-flex align-items-center" style="width:159px;">
+                            <DateInput TValue="DateOnly?" @bind-Value="newRelease.SelectedReturnDate" class="form-control" disabled/>
+                            <TimeInput TValue="TimeOnly?" @bind-Value="newRelease.SelectedReturnTime" class="form-control col-auto ms-1" disabled/>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Second Column -->
+
+                <div class="col-md-6">
+                    <div class="row mb-1">
+                        <label for="ReceivingPerson" class="text-nowrap col-sm-4 col-form-label" style="font-size: 13px;">Receiving Person</label>
+                        <div class="col-sm-8">
+                            <InputText id="ReceivingPerson" @bind-Value="newRelease.ReceivingPerson" class="form-control" style="font-size: 13px;"  />
+                            <ValidationMessage For="@(() => newRelease.ReceivingPerson)" style="font-size: 12px ;" />
+                            
+                        </div>
+                    </div>
+                    <div class="row mb-1">
+                        <label for="ModeOfTransport" class="text-nowrap col-sm-4 col-form-label" style="font-size: 13px;">Mode of Transport</label>
+                        <div class="col-sm-8">
+                            <InputText id="ModeOfTransport" @bind-Value="newRelease.ModeOfTransport" class="form-control" style="font-size: 13px;" />
+                            <ValidationMessage For="@(() => newRelease.ModeOfTransport)" style="font-size: 12px ;" />
+                            
+                        </div>
+                    </div>
+                    <div class="row mb-1">
+                        <label for="IdentificationPlate" class="text-nowrap col-sm-4 col-form-label" style="font-size: 13px;">Identification Plate</label>
+                        <div class="col-sm-8">
+                            <InputText id="IdentificationPlate" @bind-Value="newRelease.IdentificationPlate" class="form-control" style="font-size: 13px;" />
+                            <ValidationMessage For="@(() => newRelease.IdentificationPlate)" style="font-size: 12px ;" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Grid for BDetailsShow Release -->
+            <Grid @ref="gridReleaseDetailsRef"
+                TItem="BookingDetails"
+                AllowSorting="true"
+                AllowPaging="true"
+                PageSize="5"
+                Data="@BDetailsShow"
+                HeaderRowCssClass="bg-primary text-white border-bottom-0"
+                Responsive="true"
+                Class="table table-hover custom-grid table-striped">
+                <GridColumns>
+                    <GridColumn TItem="BookingDetails" HeaderText="Inventory Code" SortKeySelector="bd => bd.InventoryCode" Context="bd">
+                        @bd.InventoryCode
+                    </GridColumn>
+                    <GridColumn TItem="BookingDetails" HeaderText="Description" SortKeySelector="bd => bd.Description" Context="bd">
+                        @bd.Description
+                    </GridColumn>
+                    <GridColumn TItem="BookingDetails" HeaderText="Quantity" SortKeySelector="bd => bd.Quantity" Context="bd">
+                        @bd.Quantity
+                    </GridColumn>
+                </GridColumns>
+            </Grid>
+
+        </EditForm>
+        <div class="mt-3 modal-footer p-2">
+            <Button Color="ButtonColor.Primary" @onclick="HandleReleaseSubmit" Class="me-2">Confirm Release</Button>
+            <Button Color="ButtonColor.Danger" @onclick="OnhideReleaseModalClick">Close</Button>
+        </div>
+    </BodyTemplate>
+</Modal>
+
+
+<Modal @ref="ReturnModal" Title="Return Booking" Size="ModalSize.Large" Class="modal-size fade-in">
+    <BodyTemplate>
+        <EditForm EditContext="editContextReturnModal">
+            <DataAnnotationsValidator />
+            <div class="row">
+                <!-- First Column -->
+                <div class="col-md-8">
+
+                        <div class="row mb-1">
+                        <label for="SelectedDate" class="text-nowrap col-sm-3 col-form-label" style="font-size: 13px;">Return Date</label>
+                        <div class="col-sm-4 d-flex align-items-center" style=width:159px;>
+                            <DateInput TValue="DateOnly?" @bind-Value="newReturns.SelectedReturnDate" class="form-control" disabled/>
+                            <TimeInput TValue="TimeOnly?" @bind-Value="timeReturnsInput" class="form-control col-auto ms-1" disabled/>
+                        </div>
+                    </div>
+
+                    <div class="row mb-1">
+                        <label for="SelectedDate" class="text-nowrap col-sm-3 col-form-label" style="font-size: 13px;">Actual Return Date</label>
+                        <div class="col-sm-4 d-flex align-items-center" style=width:159px;>
+                            <DateInput TValue="DateOnly?" @bind-Value="newReturns.SelectedActualReturnDate" EnableMinMax="true" Min="@minReturnDate" class="form-control"/>
+                            <TimeInput TValue="TimeOnly?" @bind-Value="timeActualReturnInput" class="form-control col-auto ms-1" />
+
+
+                        </div>
+                            <ValidationMessage style="margin-left: 130px ;" For="@(() => newReturns.SelectedActualReturnDate)" />
+                    </div>
+                    <div class="row mb-1">
+                        <label for="SelectedDate" class="text-nowrap col-sm-3 col-form-label" style="font-size: 13px;">Actual Release Date</label>
+                        <div class="col-sm-4 d-flex align-items-center" style=width:159px;>
+                            <DateInput TValue="DateOnly?" @bind-Value="newReturns.SelectedActualReleaseDate" class="form-control" disabled/>
+                            <TimeInput TValue="TimeOnly?" @bind-Value="timeActualReleaseInput" class="form-control col-auto ms-1" disabled/>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- Second Column -->
+                <div class="col-md-4">
+
+                    <div class="row mb-1">
+                        <label for="Customer" class="text-nowrap col-sm-3 col-form-label" style="font-size: 13px;">Customer</label>
+                        <div class="col-sm-9">
+                            <InputText id="Customer" @bind-Value="Customer" class="form-control" style="font-size: 13px;" disabled />
+                        </div>
+                    </div>
+
+                    <div class="row mb-1">
+                        <label for="Remarks" class="text-nowrap col-sm-3 col-form-label" style="font-size: 13px;">Remarks</label>
+                        <div class="col-sm-9">
+                            <InputText id="Remarks" @bind-Value="newReturns.Remarks" class="form-control" style="font-size: 13px;" disabled />
+                        </div>
+                    </div>
+                
+                </div>
+
+            </div>
+            <!-- Grid for BDetailsShow Release -->
+            <Grid @ref="gridReturnsDetailsRef"
+                TItem="ReturnDetails"
+                AllowSorting="true"
+                AllowPaging="true"
+                PageSize="5"
+                Data="@returnDetails"
+                HeaderRowCssClass="bg-primary text-white border-bottom-0"
+                Responsive="true"
+                Class="table table-hover custom-grid table-striped">
+                <GridColumns>
+                    <GridColumn TItem="ReturnDetails" HeaderText="Inventory Code" SortKeySelector="rd => rd.InventoryCode" Context="rd">
+                        @rd.InventoryCode  <!-- Bind to ReturnDetails' InventoryCode -->
+                    </GridColumn>
+                    <GridColumn TItem="ReturnDetails" HeaderText="Description" SortKeySelector="rd => rd.Description" Context="rd">
+                        @rd.Description  <!-- Bind to ReturnDetails' Description -->
+                    </GridColumn>
+                    <GridColumn TItem="ReturnDetails" HeaderText="Quantity" SortKeySelector="rd => rd.Quantity" Context="rd">
+                        @rd.Quantity  <!-- Bind to ReturnDetails' Quantity -->
+                    </GridColumn>
+                    <GridColumn TItem="ReturnDetails" HeaderText="Remarks" Context="rd">
+                        <select class="form-select" value="@rd.Remarks" @onchange="(e) => OnRemarksChanged(e, rd)">
+                            <option value="Good Condition">Good Condition</option>
+                            <option value="Damaged">Damaged</option>
+                            <option value="For Repair">For Repair</option>
+                        </select> <!-- Bind to ReturnDetails' Remarks -->
+                    </GridColumn>
+                </GridColumns>
+            </Grid>
+
+        </EditForm>
+
+        <div class="mt-3 modal-footer p-2">
+            <Button Color="ButtonColor.Primary" @onclick="HandleSubmit" Class="me-2">Confirm Return</Button>
+            <Button Color="ButtonColor.Danger" @onclick="OnhideReturnModalClick">Close</Button>
+        </div>
+    </BodyTemplate>
+</Modal>
+
+<Modal @ref="ArchiveConfrimModal" Title="Archive Booking" ModalSize="ModalSize.Small" Class="modal-size fade-in">
+    <BodyTemplate>
+        <p>Are you sure you want to archive this booking?</p>
+        <div class="mt-3 modal-footer p-2">
+            <Button Color="ButtonColor.Secondary" @onclick="HideArchiveModal">Cancel</Button>
+            <Button Color="ButtonColor.Danger" @onclick="ConfirmArchiveAsync">Confirm</Button>
+        </div>
+    </BodyTemplate>
+</Modal>
+
+<Modal @ref="ArchiveModal" Title="Archive Booking" ModalSize="ModalSize.Small" Class="modal-size fade-in">
+    <BodyTemplate>
+        <p>Are you sure you want to archive this booking?</p>
+        <div class="mt-3 modal-footer p-2">
+            <Button Color="ButtonColor.Secondary" @onclick="HideArchiveModal">Cancel</Button>
+            <Button Color="ButtonColor.Danger" @onclick="ConfirmArchiveAsync">Confirm</Button>
+        </div>
+    </BodyTemplate>
+</Modal>
+
+<Modal @ref="CancelModal" Title="Cancel Booking" ModalSize="ModalSize.Small" Class="modal-size fade-in">
+    <BodyTemplate>
+        <p>Are you sure you want to cancel this booking?</p>
+        <div class="mt-3 modal-footer p-2">
+            <Button Color="ButtonColor.Secondary" @onclick="OnHideCancelModalClick">Cancel</Button>
+            <Button Color="ButtonColor.Danger" @onclick="ConfirmCancelAsync">Confirm</Button>
+        </div>
+    </BodyTemplate>
+</Modal>
+
+<Modal @ref="InquireModal" Title="Inquire Items" Size="ModalSize.Large" Class="fade-in">
+    <BodyTemplate>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+        <input type="text" class="form-control w-50 me-2" placeholder="Search..." @bind-value="searchTerm" @bind-value:event="oninput" />
+
+
+            <select class="form-select w-25" @bind="selectedAvailability">
+                <option value="All">All</option>
+                <option value="Available">Available</option>
+                <option value="Not Available">Not Available</option>
+            </select>
+        </div>
+        <Grid TItem="Inventories"
+            AllowSorting="true"
+            AllowPaging="true"
+            PageSize="7"
+            Data="@FilteredInventories"
+            HeaderRowCssClass="bg-primary text-white border-bottom-0"
+            Responsive="true"
+            Class="table table-hover custom-grid table-striped"
+            SelectionMode="GridSelectionMode.Multiple"
+            TextNoWrap="true">
+            <GridColumns>
+                <GridColumn TItem="Inventories" HeaderText="Code" Context="inv" TextNoWrap="true" Style="width: 150px;">
+                    @($"{inv.ItemCode}-{inv.POrderNum}-{inv.InventoryCode}")
+                </GridColumn>
+                <GridColumn TItem="Inventories" HeaderText="Description" Context="inv" TextNoWrap="true" Style="width: 150px;">
+                    @inv.Description
+                </GridColumn>
+                <GridColumn TItem="Inventories" HeaderText="Inventory Status" Context="inv" TextNoWrap="true" Style="width: 150px;">
+                    @if (inv.BookingState == "On-Going")
+                    {
+                        <span style="color: red;">Not Available</span>
+                    }
+                    else if (inv.BookingState == "Waiting")
+                    {
+                        <span style="color: red;">Not Available</span>
+                    }
+                    else if (inv.BookingState == "Open")
+                    {
+                        <span style="color: green;">Available</span>
+                    }
+                </GridColumn>
+            </GridColumns>
+    </Grid>
+    </BodyTemplate>
+</Modal>
+
+<Offcanvas @ref="FilterOffCanvas" Title="Filtering">
+    <BodyTemplate>
+        <label for="fromDate" class="col-form-label" style="font-size: 13px;">Date Filter:</label>
+        <!-- Date Filter Section -->
+        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: -100px; margin-top:7px;">
+
+            <InputDate id="fromDate" @bind-Value="fromDate" class="form-control" style="width: 180px;" />
+            <label class="col-form-label" style="font-size: 13px;">-</label>
+            <InputDate @bind-Value="toDate" class="form-control" style="width: 180px; margin-right: 25px;" />
+
+        </div>
+    </BodyTemplate>
+
+    <FooterTemplate>
+        <Button Color="ButtonColor.Primary" @onclick="FilterBookings">Apply Filter</Button>
+        <Button Color="ButtonColor.Danger" @onclick="ResetFilter">Reset Filter</Button>
+    </FooterTemplate>
+</Offcanvas>
+
+
+
+<!-------------------------------------------------------------------------------------------->
+
+
+
+<Toasts class="p-3" Messages="messages" AutoHide="true" StackLength="3" Placement="ToastsPlacement.TopRight" />
+
+
+<script src="site.js"></script>
+
+@code {
+    private Modal GridModal = default!;
+    private Modal ReleaseModal = default!;
+    private Modal ReturnModal = default!;
+    private Modal CancelModal = default!;
+    private Modal BookingDetailsModal = default!;
+    private Modal ArchiveConfrimModal = default!;
+    private Modal InquireModal = default!;
+    private Grid<BookingDetails>? gridRef;
+    private Grid<BookingDetails>? gridBDetailsRef;
+    private Grid<ReturnDetails>? gridReturnsDetailsRef;
+    private Grid<BookingDetails>? gridReleaseDetailsRef;
+
+        
+    private Offcanvas FilterOffCanvas = default!;
+
+
+    private List<PhCity> phCities = new();
+    private List<Inventories> inventories = new();
+    private List<Returns> returns = new();
+    private List<Release> release = new();
+    private List<ReleaseDetails> releaseDetails = new();
+    private List<ReturnDetails> returnDetails = new();
+    private List<BookingHeader> Bheader = new();
+    private List<BookingDetails> BDetails = new();
+    private List<BookingDetails> BDetailsShow = new();
+
+    List<ToastMessage> messages = new List<ToastMessage>();
+
+
+
+
+    private Returns newReturns = new();
+    private Release newRelease = new();
+    private ReleaseDetails newReleaseDetails = new();
+    private ReturnDetails newReturnDetails = new();
+    private Inventory newInventory = new();
+    private BookingHeader newBheader = new();
+    private BookingDetails newBDetails = new();
+
+    private string errorMessage = "";
+    private string successMessage = "";
+    private int? selectedBHeaderCode = null;
+
+    private TimeOnly? timeInput;
+    private TimeOnly? timeReturnInput;
+    private TimeOnly? timeReturnsInput;
+    private TimeOnly? timeActualReturnInput;
+    private TimeOnly? timeActualReleaseInput;
+    private DateTime? SelectedStartDate { get; set; }
+    private DateOnly? SelectedReturnDate { get; set; }
+    private DateOnly? SelectedActualReleaseDate { get; set; }
+
+    private string Customer { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Customer Name required.")]
+    private string EnteredCustomer { get; set; } = string.Empty;
+
+
+
+    private EditContext? editContext;
+    private EditContext? editContextReturnModal;
+    private EditContext? editContextReleaseModal;
+    private EditContext? editContextBookingModal;
+    private DateOnly Today => DateOnly.FromDateTime(DateTime.Today);
+    private DateOnly? minReturnDate;
+
+
+    private async Task OpenOffcanvas()
+    {
+        await FilterOffCanvas.ShowAsync();
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load items once.
+
+        StateHasChanged(); //to uBdate immediately
+
+        Bheader = null;
+        var headers = await ApiComm.GetBHeadersAsync();
+        inventories = await ApiComm.GetInventoryAsync();
+
+        Bheader = await ApiComm.GetBHeadersAsync();
+        
+        newBheader.BHeaderCode = headers.Any() ? headers.Max(bh => bh.BHeaderCode) + 1 : 1001;
+        filteredBookings = Bheader; // Initialize with all bookings
+
+        newBheader.EndDate = newBheader.ActivityDate?.AddDays(1);
+        editContextReturnModal = new EditContext(newReturns);
+        editContextBookingModal = new EditContext(newBheader);
+        editContextReleaseModal = new EditContext(newRelease);
+
+        FilterBookings();
+
+    }
+
+
+    private async Task ShowBookingDetails(int bHeaderCode)
+    {
+        selectedBHeaderCode = bHeaderCode; // Store selected header
+        BDetailsShow = await ApiComm.LoadBookingDetails(bHeaderCode); // Fetch details
+    }
+
+private async Task SubmitBookingAsync()
+{
+    
+    // Reset messages
+    errorMessage = string.Empty;
+    successMessage = string.Empty;
+
+    if (newBheader.ActivityDate == null || newBheader.EndDate == null)
+    {
+        errorMessage = "Dates cannot be empty.";
+        return;
+    }
+
+    DateTime combinedDateTime = newBheader.ActivityDate.Value.ToDateTime(newBheader.ActivityTime.Value);
+    DateTime combinedEndDateTime = newBheader.EndDate.Value.ToDateTime(newBheader.EndTime.Value);
+    // Create new booking header using user input and other form fields
+    var newBookingHeader = new BookingHeader
+    {
+        Customer = EnteredCustomer,
+        DateOfBooking = DateOnly.FromDateTime(DateTime.Now),
+        DateofActivity = combinedDateTime, // Now combined Date & Time
+        EndofActivity = combinedEndDateTime,
+        City = newBheader.City,
+        Address = newBheader.Address,
+        Status = newBheader.Status
+    };
+
+    // Submit Booking Header
+    bool headerSuccess = await ApiComm.AddBHeadersAsync(newBookingHeader);
+    if (!headerSuccess)
+    {
+        errorMessage = "Failed to submit Booking Header.";
+        return;
+    }
+
+    ShowAddBookingMessage(newBheader.Customer);
+    
+
+    // Fetch the latest Booking Headers to get the newly assigned BHeaderCode
+    var headers = await ApiComm.GetBHeadersAsync();
+
+    var latestHeader = headers.OrderByDescending(h => h.BHeaderCode).FirstOrDefault();
+    if (latestHeader == null)
+    {
+        Console.WriteLine("Error: " + errorMessage);
+        return;
+    }
+    int newBHeaderCode = latestHeader.BHeaderCode;
+
+    // Map each booking detail row to a new BookingDetails instance with the new BHeaderCode
+    var detailsToSubmit = BDetails.Select(detail => new BookingDetails
+    {
+        BHeaderCode = newBHeaderCode,
+        InventoryCode = detail.InventoryCode,
+        Description = detail.Description,
+        Quantity = detail.Quantity
+    }).ToList();
+
+    // Submit Booking Details
+    bool detailsSuccess = await ApiComm.AddBDetailsAsync(detailsToSubmit);
+    if (!detailsSuccess)
+    {
+        Console.WriteLine("Error: " + errorMessage);
+        return;
+    }
+
+        // Update Inventory: Set Reserved to 1 and BookingState to 'Waiting'
+    foreach (var detail in detailsToSubmit)
+    {
+        bool updateSuccess = await ApiComm.UpdateInventoryPatchAsync(detail.InventoryCode, 1, "Waiting");
+        Console.WriteLine($"Uploaded update inventory for InventoryCode: {detail.InventoryCode}");
+
+        if (!updateSuccess)
+        {
+            Console.WriteLine($"Failed to update inventory for InventoryCode: {detail.InventoryCode}");
+        }
+    }
+    BDetails = await ApiComm.GetBDetailsAsync();
+    await ResetModalContentsAsync();
+    filteredBookings = await ApiComm.GetBHeadersAsync();
+
+    // Optionally, clear form data if needed
+    EnteredCustomer = string.Empty;
+}
+
+    private async void ShowReleaseSuccessMessage(string customerName)
+    {
+        var toast = new ToastMessage
+        {
+            Type = ToastType.Success,
+            Title = "Items Released",
+            HelpText = $"{DateTime.Now}",
+            Message = $"Items have been released for '{customerName}' at {DateTime.Now}.",
+        };
+
+        messages.Add(toast);
+        StateHasChanged();
+
+        // Remove the toast after 6 seconds
+        await Task.Delay(6000);
+        messages.Remove(toast);
+        StateHasChanged();
+    }
+    private async void ShowAddBookingMessage(string CustomerName)
+    {
+        var toast = new ToastMessage
+        {
+            Type = ToastType.Success,
+            Title = "Booking Added",
+            HelpText = $"{DateTime.Now}",
+            Message = $"You added a new Booking for '{CustomerName}' at {DateTime.Now}.",
+        };
+
+        messages.Add(toast);
+        StateHasChanged();
+
+        // Remove the toast after 6 seconds
+        await Task.Delay(6000);
+        messages.Remove(toast);
+        StateHasChanged();
+    }
+
+    
+    private async Task AddEmptyRow()
+    {
+
+        var newId = BDetails.Any() ? BDetails.Max(e => e.BDetailsCode) + 1 : 1;
+        BDetails.Add(new BookingDetails { 
+        
+        BDetailsCode = newId,
+        
+        InventoryCode = newBDetails.InventoryCode,
+        Description = newBDetails.Description,
+        Quantity = newBDetails.Quantity,
+        });
+
+        if (gridRef is not null)
+        {
+            await gridRef.RefreshDataAsync();
+            Console.WriteLine("Adding new row...");
+
+        }
+    }
+
+    private void OnAddToInventoryChanged(purchaseDetails row, bool value)
+{
+    row.AddToInventory = value;
+}
+
+//---------------------------------------------------------------------------------------------------------
+
+        private async Task RemoveRow(int id)
+    {
+        Console.WriteLine($"Removing row with ID: {id}");
+
+        var BDetailToRemove = BDetails.FirstOrDefault(e => e.BDetailsCode == id);
+        if (BDetailToRemove is not null)
+        {
+            BDetails.Remove(BDetailToRemove);
+
+            if (gridRef is not null)
+            {
+                await gridRef.RefreshDataAsync();
+            }
+        }
+    }
+
+private async Task OnShowReturnModalClick(int bHeaderCode, string customer)
+{
+    newReturns.BHeaderCode = bHeaderCode;
+    Customer = customer;
+
+    var releases = await ApiComm.GetReleasesAsync();
+    var matchingRelease = releases.FirstOrDefault(r => r.BHeaderCode == bHeaderCode);
+
+    if (matchingRelease != null)
+    {
+        newReturns.ReleaseID = matchingRelease.ReleaseID;
+
+        releaseDetails = await ApiComm.GetReleaseDetailsByReleaseIDAsync(matchingRelease.ReleaseID);
+
+        // Set all remarks to "Good Condition" if not set
+        foreach (var detail in releaseDetails)
+        {
+            if (string.IsNullOrWhiteSpace(detail.Remarks))
+            {
+                detail.Remarks = "Good Condition";
+            }
+        }
+
+        returnDetails = releaseDetails
+            .Where(rd => rd.ReleaseID == matchingRelease.ReleaseID) // Filtering by ReleaseID
+            .Select(rd => new ReturnDetails
+            {
+                ReturnID = 0,  // Initialize ReturnID
+                ReleaseDetailsID = rd.ReleaseDetailsID,
+                InventoryCode = rd.InventoryCode,
+                Description = rd.Description,
+                Quantity = rd.Quantity,
+                Remarks = rd.Remarks  // Ensure remarks are included
+            }).ToList();
+
+                foreach (var returnDetail in returnDetails)
+        {
+        Console.WriteLine($"ReturnDetails ID: {returnDetail.ReleaseDetailsID}, " +
+                            $"InventoryCode: {returnDetail.InventoryCode}, " +
+                            $"Description: {returnDetail.Description}, " +
+                            $"Quantity: {returnDetail.Quantity}, " +
+                            $"Remarks: {returnDetail.Remarks}");
+        }
+
+        // Split ReturnDate
+        if (matchingRelease.ReturnDate.HasValue)
+        {
+            newReturns.SelectedReturnDate = DateOnly.FromDateTime(matchingRelease.ReturnDate.Value);
+            timeReturnsInput = TimeOnly.FromDateTime(matchingRelease.ReturnDate.Value);
+        }
+
+        // Split Actual Release Date
+        if (matchingRelease.ReleaseDate.HasValue)
+        {
+            newReturns.SelectedActualReleaseDate = DateOnly.FromDateTime(matchingRelease.ReleaseDate.Value);
+            timeActualReleaseInput = TimeOnly.FromDateTime(matchingRelease.ReleaseDate.Value);
+        }
+
+        minReturnDate = newReturns.SelectedReturnDate ?? DateOnly.FromDateTime(DateTime.Now);
+
+        UpdateRemarks(); // Only after details are initialized
+    }
+
+    await ReturnModal.ShowAsync();
+}
+
+
+    private async Task OnhideReturnModalClick()
+    {
+        await ReturnModal.HideAsync();
+    }
+
+private async Task OnShowReleaseModalClick(int bHeaderCode, string customer)
+{
+    // Fetch the booking header from the API
+    var bookingHeaders = await ApiComm.GetBHeadersAsync();
+    var booking = bookingHeaders.FirstOrDefault(b => b.BHeaderCode == bHeaderCode);
+
+    if (booking != null)
+    {
+        newRelease.BHeaderCode = bHeaderCode;
+
+        // Convert DateTime? to DateOnly?
+        newRelease.SelectedDate = booking.DateofActivity.HasValue 
+            ? DateOnly.FromDateTime(booking.DateofActivity.Value) 
+            : null;
+
+        newRelease.SelectedTime = booking.DateofActivity.HasValue 
+            ? TimeOnly.FromDateTime(booking.DateofActivity.Value) 
+            : TimeOnly.FromDateTime(DateTime.Now);
+
+        newRelease.SelectedReturnDate = booking.EndofActivity.HasValue 
+            ? DateOnly.FromDateTime(booking.EndofActivity.Value) 
+            : null;
+
+        newRelease.SelectedReturnTime = booking.EndofActivity.HasValue 
+            ? TimeOnly.FromDateTime(booking.EndofActivity.Value) 
+            : TimeOnly.FromDateTime(DateTime.Now);
+    }
+    else
+    {
+        // Default values if booking is not found
+        newRelease.BHeaderCode = bHeaderCode;
+        newRelease.SelectedDate = null;
+        newRelease.SelectedTime = TimeOnly.FromDateTime(DateTime.Now);
+        newRelease.SelectedReturnDate = null;
+        newRelease.SelectedReturnTime = TimeOnly.FromDateTime(DateTime.Now);
+    }
+
+    Customer = customer;
+    await ReleaseModal.ShowAsync();
+}
+
+    private async Task OnhideReleaseModalClick()
+    {
+        await ReleaseModal.HideAsync();
+    }
+
+    private async Task OnShowCancelModalClick()
+    {
+        await CancelModal.ShowAsync();
+    }
+
+    private async Task OnHideCancelModalClick()
+    {
+        await CancelModal.HideAsync();
+    }
+
+    private async Task OnShowInquireModalClick()
+    {
+        await InquireModal.ShowAsync();
+    }
+
+    private async Task OnHideInquireModalClick()
+    {
+        await InquireModal.HideAsync();
+    }
+
+
+    private async Task OnShowGridModalClick()
+    {
+        await GridModal.ShowAsync();
+    }
+
+    private async Task OnhideGridModalClick()
+    {
+        await GridModal.HideAsync();
+    }
+
+        private async Task OnShowArchiveConfrimModalClick()
+    {
+        await ArchiveConfrimModal.ShowAsync();
+    }
+
+    private async Task OnhideArchiveConfrimModalClick()
+    {
+        await ArchiveConfrimModal.HideAsync();
+    }
+
+
+private async Task ConfirmSubmitRelease()
+{
+    ShowReleaseSuccessMessage(Customer);
+
+    // Ensure that the selected date and time from the modal are used for submission
+    if (newRelease.SelectedDate.HasValue && newRelease.SelectedTime.HasValue && newRelease.SelectedReturnDate.HasValue && newRelease.SelectedReturnTime.HasValue)
+    {
+        // Combine Date and Time for ReleaseDate
+        newRelease.ReleaseDate = new DateTime(
+            newRelease.SelectedDate.Value.Year,
+            newRelease.SelectedDate.Value.Month,
+            newRelease.SelectedDate.Value.Day,
+            newRelease.SelectedTime.Value.Hour,
+            newRelease.SelectedTime.Value.Minute,
+            0
+        );
+
+        // Combine Date and Time for ReturnDate
+        newRelease.ReturnDate = new DateTime(
+            newRelease.SelectedReturnDate.Value.Year,
+            newRelease.SelectedReturnDate.Value.Month,
+            newRelease.SelectedReturnDate.Value.Day,
+            newRelease.SelectedReturnTime.Value.Hour,
+            newRelease.SelectedReturnTime.Value.Minute,
+            0
+        );
+
+        int bHeaderCode = newRelease.BHeaderCode; // Store before resetting
+
+        // Step 1: Submit the Release record
+        var success = await ApiComm.AddReleaseAsync(newRelease);
+        if (success)
+        {
+            // Step 2: Retrieve the newly created ReleaseID
+            var releases = await ApiComm.GetReleasesAsync();
+            var createdRelease = releases.FirstOrDefault(r => r.BHeaderCode == bHeaderCode && r.ReleaseDate == newRelease.ReleaseDate);
+
+            if (createdRelease != null)
+            {
+                newRelease.ReleaseID = createdRelease.ReleaseID; // Assign the retrieved ReleaseID
+
+                // Step 3: Submit ReleaseDetails for each item in the grid
+                foreach (var detail in BDetailsShow)
+                {
+                    var releaseDetail = new ReleaseDetails
+                    {
+                        ReleaseID = newRelease.ReleaseID, // Use the retrieved ReleaseID
+                        InventoryCode = detail.InventoryCode,
+                        Description = detail.Description,
+                        Quantity = detail.Quantity
+                    };
+
+                    var releaseDetailSuccess = await ApiComm.AddReleaseDetailsAsync(releaseDetail);
+                    if (!releaseDetailSuccess)
+                    {
+                        Console.WriteLine($"Failed to submit ReleaseDetails for InventoryCode: {detail.InventoryCode}");
+                    }
+                }
+
+                // Step 4: Update the status of the booking to "On-Going"
+                var statusUpdated = await ApiComm.UpdateReleaseStatusAsync(bHeaderCode, "On-Going");
+                if (!statusUpdated)
+                {
+                    Console.WriteLine($"Failed to update booking status to 'On-Going' for BHeaderCode {bHeaderCode}.");
+                }
+                else
+                {
+                    // Refresh the Bheader list after status update
+                    var updatedList = await ApiComm.GetBHeadersAsync();
+                    Bheader = updatedList ?? new List<BookingHeader>(); // Ensure it's never null
+
+                    // Update the BookingState of inventory items to "On-Going"
+                    foreach (var detail in BDetailsShow)
+                    {
+                        bool updateSuccess = await ApiComm.UpdateInventoryPatchAsync(detail.InventoryCode, 1, "On-Going");
+                        Console.WriteLine($"Uploaded update inventory for InventoryCode: {detail.InventoryCode}");
+
+                        if (!updateSuccess)
+                        {
+                            Console.WriteLine($"Failed to update inventory for InventoryCode: {detail.InventoryCode}");
+                        }
+                    }
+                }
+
+                // Hide the release modal
+                await ReleaseModal.HideAsync();
+                filteredBookings = await ApiComm.GetBHeadersAsync();
+
+                // Reset form AFTER calling API to avoid data loss
+                newRelease = new Release();
+                timeInput = null;
+                timeReturnInput = null; // Reset return time input as well
+            }
+            else
+            {
+                Console.WriteLine("Failed to retrieve the created Release record.");
+            }
+        }
+        else
+        {
+            Console.WriteLine("Failed to submit release.");
+        }
+    }
+    else
+    {
+        Console.WriteLine("Please select a valid date and time.");
+    }
+}
+
+private async Task HandleSubmitBooking()
+{
+    bool isValid = editContextBookingModal.Validate();
+
+    if (isValid)
+    {
+        await SubmitBookingAsync(); // call your real logic only if valid
+    }
+    else
+    {
+        // Optionally trigger alert or log something
+        StateHasChanged(); // to update UI
+    }
+}
+
+private async Task HandleSubmit()
+{
+    bool isValid = editContextReturnModal.Validate();
+
+    if (isValid)
+    {
+        await ConfirmSubmitReturn(); // call your real logic only if valid
+    }
+    else
+    {
+        // Optionally trigger alert or log something
+        StateHasChanged(); // to update UI
+    }
+}
+
+private async Task HandleReleaseSubmit()
+{
+    bool isValid = editContextReleaseModal.Validate();
+
+    if (isValid)
+    {
+        await ConfirmSubmitRelease(); // call your real logic only if valid
+    }
+    else
+    {
+        // Optionally trigger alert or log something
+        StateHasChanged(); // to update UI
+    }
+}
+
+
+
+private async Task ConfirmSubmitReturn()
+{
+    ShowReleaseSuccessMessage(Customer);
+
+    if (newReturns.SelectedReturnDate.HasValue && timeReturnsInput.HasValue)
+    {
+        newReturns.ReturnDate = new DateTime(
+            newReturns.SelectedReturnDate.Value.Year,
+            newReturns.SelectedReturnDate.Value.Month,
+            newReturns.SelectedReturnDate.Value.Day,
+            timeReturnsInput.Value.Hour,
+            timeReturnsInput.Value.Minute,
+            0
+        );
+
+        newReturns.ActualReturnDate = new DateTime(
+            newReturns.SelectedActualReturnDate.Value.Year,
+            newReturns.SelectedActualReturnDate.Value.Month,
+            newReturns.SelectedActualReturnDate.Value.Day,
+            timeActualReturnInput.Value.Hour,
+            timeActualReturnInput.Value.Minute,
+            0
+        );
+
+        newReturns.ActualReleaseDate = new DateTime(
+            newReturns.SelectedActualReleaseDate.Value.Year,
+            newReturns.SelectedActualReleaseDate.Value.Month,
+            newReturns.SelectedActualReleaseDate.Value.Day,
+            timeActualReleaseInput.Value.Hour,
+            timeActualReleaseInput.Value.Minute,
+            0
+        );
+
+        int bHeaderCode = newReturns.BHeaderCode; // Store before resetting
+
+        // Submit release
+        var createdReturn = await ApiComm.AddReturnAndGetObjectAsync(newReturns);
+        if (returnDetails.Any())
+        {
+            int returnID = createdReturn.ReturnID;
+            Console.WriteLine($"✅ Return created successfully with ReturnID: {returnID}");
+
+            // Now loop through returnDetails and post each one
+            foreach (var detail in returnDetails)
+            {
+                var newDetail = new ReturnDetails
+                {
+                    ReturnID = returnID,
+                    ReleaseDetailsID = detail.ReleaseDetailsID,
+                    InventoryCode = detail.InventoryCode,
+                    Description = detail.Description,
+                    Quantity = detail.Quantity,
+                    Remarks = detail.Remarks
+                };
+
+                Console.WriteLine($"Posting ReturnDetail for InventoryCode: {detail.InventoryCode}");
+
+                bool detailSuccess = await ApiComm.AddReturnDetailsAsync(newDetail);
+
+                if (!detailSuccess)
+                {
+                    Console.WriteLine($"❌ Failed to add ReturnDetail for InventoryCode: {detail.InventoryCode}");
+                }
+                else
+                {
+                    Console.WriteLine($"✅ Added ReturnDetail for InventoryCode: {detail.InventoryCode}");
+                }
+            }
+
+            // Update status to "Finished" after successful release submission
+            var statusUpdated = await ApiComm.UpdateReleaseStatusAsync(bHeaderCode, "Finished");
+
+            if (!statusUpdated)
+            {
+                Console.WriteLine($"❌ Failed to update booking status to 'Finished' for BHeaderCode {bHeaderCode}.");
+            }
+            else
+            {
+                // Refresh the Bheader list after status update
+                var updatedList = await ApiComm.GetBHeadersAsync();
+                Bheader = updatedList ?? new List<BookingHeader>(); // Ensure it's never null
+
+                // Now update the BookingState of inventory items to "On-Going"
+                foreach (var detail in BDetailsShow)
+                {
+                    bool updateSuccess = await ApiComm.UpdateInventoryPatchAsync(detail.InventoryCode, 1, "Open");
+                    Console.WriteLine($"Uploaded update inventory for InventoryCode: {detail.InventoryCode}");
+
+                    if (!updateSuccess)
+                    {
+                        Console.WriteLine($"Failed to update inventory for InventoryCode: {detail.InventoryCode}");
+                    }
+                }
+            }
+
+            // Hide the return modal
+            await ReturnModal.HideAsync();
+            filteredBookings = await ApiComm.GetBHeadersAsync();
+
+
+
+            // Reset form AFTER calling API to avoid data loss
+            newReturns = new Returns();
+            timeReturnsInput = null;
+            timeActualReturnInput = null;
+            timeActualReleaseInput = null;
+        }
+        else
+        {
+            Console.WriteLine("Return details are empty or not submitted.");
+        }
+    }
+    else
+    {
+        Console.WriteLine("Whole Transaction Failed");
+    }
+}
+
+private async Task ResetModalContentsAsync()
+{
+    // Reinitialize the grid collection to an empty list.
+    BDetails = new List<BookingDetails>();
+
+    // Re-fetch current PurchaseHeaders to determine the next available POrderNum.
+    var headers = await ApiComm.GetBHeadersAsync();
+    int nextBheaderNo = headers.Any() ? headers.Max(bh => bh.BHeaderCode) + 1 : 1;
+
+    // Reset your PurchaseHeader model with the next available POrderNum and clear supplier.
+    newBheader = new BookingHeader
+    {
+        BHeaderCode = nextBheaderNo,
+        DateOfBooking = null,  // Reset as needed
+        DateofActivity = null, 
+        ActivityDate = null,  // Reset as needed
+        ActivityTime = null,
+        City = null, 
+        Address = null, 
+        Customer = null, 
+        Status = null, 
+    };
+
+    Console.WriteLine(nextBheaderNo);
+    editContext = new EditContext(newBheader);
+
+
+    if (gridRef is not null)
+    {
+        await gridRef.RefreshDataAsync();
+    }
+    StateHasChanged();
+    Bheader = await ApiComm.GetBHeadersAsync();
+}
+
+private async Task<AutoCompleteDataProviderResult<Inventories>> InventoryDataProvider(AutoCompleteDataProviderRequest<Inventories> request)
+{
+    // Always fetch fresh data
+    var freshInventories = await ApiComm.GetInventoryAsync();
+
+    // Filter only "Open" BookingState
+    var filteredInventories = freshInventories
+        .Where(i => i.BookingState == "Open")
+        .OrderBy(i => i.DisplayText)
+        .ToList();
+
+    return await Task.FromResult(request.ApplyTo(filteredInventories));
+}
+
+
+
+private void OnInventoryAutoCompleteChanged(Inventories selectedInventory, BookingDetails row)
+{
+    if (selectedInventory != null)
+    {
+        row.InventoryCode = selectedInventory.InventoryCode; // Keep as int
+        row.Description = selectedInventory.Description;
+        row.Quantity = selectedInventory.Quantity;
+        row.SelectedInventoryDisplay = selectedInventory.DisplayInvCode; // Ensure it's set correctly
+
+        Console.WriteLine($"Selected Inventory: {row.InventoryCode}, Description: {row.Description}, Quantity: {row.Quantity}");
+    }
+}
+
+// Data & selection variables
+private HashSet<BookingHeader> BookingSet = new();
+private int? SelectedBHeaderCode;
+private List<BookingDetails> FilteredBookingDetails = new();
+
+// This method is called when the user selects a booking header.
+private async Task OnSelectedBookingItemsChanged(HashSet<BookingHeader> selectedHeaders)
+{
+    if (selectedHeaders.Any())
+    {
+        var selectedHeader = selectedHeaders.First();
+        SelectedBHeaderCode = selectedHeader.BHeaderCode;
+
+        await Task.Delay(10); // Simulate async operation
+
+        // Fetch all booking details from the API.
+        var bookingDetails = await ApiComm.GetBDetailsAsync();
+
+        // Filter booking details to only include those that match the selected header.
+        FilteredBookingDetails = bookingDetails
+            .Where(bd => bd.BHeaderCode == SelectedBHeaderCode)
+            .ToList();
+
+        // Force UI refresh for the booking details grid.
+        if (gridBDetailsRef is not null)
+        {
+            await gridBDetailsRef.RefreshDataAsync();
+        }
+        StateHasChanged();
+    }
+    else
+    {
+        SelectedBHeaderCode = null;
+        FilteredBookingDetails.Clear();
+        StateHasChanged();
+    }
+}
+
+    private void SetStatusValue(string status)
+    {
+        newBheader.Status = status;
+    }
+
+    private BadgeColor GetBadgeColor(string status)
+    {
+        return status switch
+        {
+            "Waiting" => BadgeColor.Dark,
+            "On-Going" => BadgeColor.Primary,
+            "Finished" => BadgeColor.Success,
+            _ => BadgeColor.Warning
+        };
+    }
+
+    private string GetBadgeStyle(string status)
+    {
+        return status switch
+        {
+            "Waiting" => "color: white !important; box-shadow: 0 4px 9px -4px #Ffffff !important;",
+            "On Going" => " color: white !important; box-shadow: 0 4px 9px -4px #dc3545 !important;",
+            "Returned" => " color: white !important; box-shadow: 0 4px 9px -4px #198754 !important;",
+            _ => "color: white !important; box-shadow: 0 4px 9px -4px #6c757d !important;"
+        };
+    }
+
+    private BadgeColor GetCancelBadgeColor(int cancelStatus)
+    {
+        return cancelStatus == 1
+            ? BadgeColor.Danger
+            : BadgeColor.Secondary;
+    }
+
+
+    private string GetCancelBadgeStyle(int cancelStatus)
+    {
+        return cancelStatus == 1
+            ? "margin-left: .5rem !important; color: white !important; box-shadow: 0 4px 9px -4px #6c757d !important;"
+            : "display: none;";
+    }
+
+
+    private DateTime? fromDate;
+    private DateTime? toDate;
+private string customerSearch = "";
+private string filterField = "DateOfBooking";  // default
+private string sortOrder = "asc";              // default
+private List<BookingHeader> filteredBookings = new();
+
+private async Task OnCustomerSearchChanged(ChangeEventArgs e)
+{
+    customerSearch = e.Value?.ToString() ?? string.Empty;
+    FilterBookings();
+    StateHasChanged();
+}
+
+private void OnFilterFieldChanged(ChangeEventArgs e)
+{
+    filterField = e.Value?.ToString() ?? "DateOfBooking";
+    FilterBookings();
+}
+
+private void OnSortOrderChanged(ChangeEventArgs e)
+{
+    sortOrder = e.Value?.ToString() ?? "asc";
+    FilterBookings();
+}
+
+private void FilterBookings()
+{
+    var result = Bheader.AsEnumerable();
+
+    // Search filter (only if filter field is Customer)
+    if (!string.IsNullOrWhiteSpace(customerSearch))
+    {
+        result = result.Where(b => b.Customer.Contains(customerSearch, StringComparison.OrdinalIgnoreCase));
+    }
+
+    // Date range filter (optional, keep if you have fromDate/toDate already)
+    if (fromDate != null || toDate != null)
+    {
+        result = result.Where(b =>
+            (fromDate == null || b.DateofActivity >= fromDate) &&
+            (toDate == null || b.DateofActivity <= toDate));
+    }
+
+    // Sorting
+    result = (filterField, sortOrder) switch
+    {
+        ("DateOfBooking", "asc") => result.OrderBy(b => b.DateOfBooking),
+        ("DateOfBooking", "desc") => result.OrderByDescending(b => b.DateOfBooking),
+        ("Customer", "asc") => result.OrderBy(b => b.Customer),
+        ("Customer", "desc") => result.OrderByDescending(b => b.Customer),
+        _ => result
+    };
+
+    filteredBookings = result.ToList();
+}
+
+
+
+
+    private void ResetFilter()
+    {
+        fromDate = null;
+        toDate = null;
+        filteredBookings = Bheader;
+    }
+
+private void UpdateRemarks()
+{
+    int totalRows = returnDetails.Count;
+    int goodConditionCount = returnDetails.Count(rd => rd.Remarks == "Good Condition");
+
+    if (goodConditionCount == totalRows)
+    {
+        newReturns.Remarks = "All in good condition";
+    }
+    else if (goodConditionCount > totalRows / 2)
+    {
+        newReturns.Remarks = "Minor Issues";
+    }
+    else
+    {
+        newReturns.Remarks = "Major Issues";
+    }
+}
+
+    private void OnRemarksChanged(ChangeEventArgs e, ReturnDetails row)
+    {
+        if (e.Value is not null)
+        {
+            row.Remarks = e.Value.ToString();
+            UpdateRemarks(); // Call UpdateRemarks without passing e
+        }
+    }
+    private Modal ArchiveModal = default!;
+private int selectedArchiveId;
+
+private async Task ShowArchiveModal(int id)
+{   
+    Console.WriteLine($"Showing archive modal for ID: {id}");
+    selectedArchiveId = id;
+    await ArchiveModal.ShowAsync();
+}
+
+private async Task HideArchiveModal()
+{
+    await ArchiveModal.HideAsync();
+}
+
+private async Task ConfirmArchiveAsync()
+{
+    // Update status to Archived
+    var successStatus = await ApiComm.UpdateReleaseStatusAsync(selectedArchiveId, "Archived");
+
+    // Send PATCH to update ArchiveDate (below you'll add this method)
+    var successDate = await ApiComm.UpdateArchiveDateAsync(selectedArchiveId, DateTime.Now);
+
+    if (successStatus && successDate)
+    {
+        // Optionally refresh data or show success message
+        filteredBookings = await ApiComm.GetBHeadersAsync();
+    }
+
+    await ArchiveModal.HideAsync();
+}
+
+private async Task ConfirmCancelAsync()
+{
+    if (selectedBHeaderCode == null)
+        return;
+
+    var bHeaderId = selectedBHeaderCode.Value;
+
+    // Step 1: Update status to "Finished"
+    var successStatus = await ApiComm.UpdateReleaseStatusAsync(bHeaderId, "Finished");
+
+    // Step 2: Update CancelStatus to 1
+    var successCancel = await ApiComm.UpdateCancelStatusAsync(bHeaderId, 1);
+
+    if (successStatus && successCancel)
+    {
+        // Step 3: Change Inventory BookingState from "Waiting" to "Open"
+        foreach (var detail in BDetailsShow)
+        {
+            bool updateSuccess = await ApiComm.UpdateInventoryPatchAsync(detail.InventoryCode, 0, "Open");
+            Console.WriteLine($"Uploaded update inventory for InventoryCode: {detail.InventoryCode}");
+
+            if (!updateSuccess)
+            {
+                Console.WriteLine($"Failed to update inventory for InventoryCode: {detail.InventoryCode}");
+            }
+        }
+
+        // Refresh the booking list
+        filteredBookings = await ApiComm.GetBHeadersAsync();
+    }
+    else
+    {
+        Console.WriteLine("Failed to update either status or cancel status.");
+    }
+
+    await CancelModal.HideAsync();
+}
+
+
+private async Task ShowBookingDetailsModal(int bHeaderCode)
+{
+    // Optional: Find booking in local list to grab more info (like customer name)
+    var booking = filteredBookings.FirstOrDefault(b => b.BHeaderCode == bHeaderCode);
+
+    if (booking != null)
+    {
+        selectedBHeaderCode = booking.BHeaderCode;
+
+        // Fetch full booking details via API
+        BDetailsShow = await ApiComm.LoadBookingDetails(bHeaderCode);
+
+        await BookingDetailsModal.ShowAsync();
+    }
+}
+
+private async Task GenerateBookingPDFAsync(BookingHeader selectedHeader)
+{
+    using var stream = new MemoryStream();
+    var document = new PdfDocument();
+    var page = document.AddPage();
+    var gfx = XGraphics.FromPdfPage(page);
+    var font = new XFont("Arial", 8, XFontStyle.Regular);
+    var boldFont = new XFont("Arial", 12, XFontStyle.Bold);
+    var mediumFont = new XFont("Arial", 10, XFontStyle.Bold);
+    var startDate = selectedHeader.DateofActivity?.ToString("MMMM d, yyyy") ?? "No Start Date";
+    var endDate = selectedHeader.EndofActivity?.ToString("MMMM d, yyyy") ?? "No End Date";
+
+    int marginTop = 40;
+    int marginLeft = 40;
+    int marginRight = 40;
+    int contentWidth = (int)page.Width - marginLeft - marginRight;
+    int rightX = marginLeft + contentWidth - 200;
+
+    int y = marginTop;
+
+    // --- Logo and Inline Text ---
+    string logoPath = Path.Combine(Environment.CurrentDirectory, "wwwroot/Images", "itsslogo.png");
+    if (File.Exists(logoPath))
+    {
+        var logo = XImage.FromFile(logoPath);
+        double logoWidth = 75;
+        double logoHeight = 50;
+        gfx.DrawImage(logo, marginLeft - 20, marginTop - 30, logoWidth, logoHeight);
+
+        gfx.DrawString("Innovative Thinker Software ", boldFont, XBrushes.Black, new XPoint(marginLeft - 30 + logoWidth + 10, marginTop));
+        gfx.DrawString("Solutions Corporation", boldFont, XBrushes.Black, new XPoint(marginLeft - 30 + logoWidth + 10, marginTop + 10));
+    }
+
+    // --- Top Right Info ---
+    gfx.DrawString($"Booking Code # BK{selectedHeader.BHeaderCode}", boldFont, XBrushes.Black, new XPoint(rightX, y));
+    y += 15;
+    gfx.DrawString($"Booking Date: {selectedHeader.DateOfBooking:yyyy-MM-dd}", font, XBrushes.Black, new XPoint(rightX, y));
+    y += 30;
+
+    // --- Customer Info (Left) ---
+    gfx.DrawString("Booked By", font, XBrushes.Black, new XPoint(marginLeft, y));
+    y += 15;
+    gfx.DrawString(selectedHeader.Customer ?? "Unknown", boldFont, XBrushes.Black, new XPoint(marginLeft, y));
+    y += 12;
+    gfx.DrawString("Booking Contact", font, XBrushes.Black, new XPoint(marginLeft, y));
+    y += 15;
+    gfx.DrawString($"{selectedHeader.Address ?? "No Address"}, {selectedHeader.City ?? "No City"}", font, XBrushes.Black, new XPoint(marginLeft, y));
+    y += 15;
+    // Add start - end activity dates
+    gfx.DrawString($"{startDate} - {endDate}", font, XBrushes.Black, new XPoint(marginLeft, y));
+    y += 15;
+
+    // --- Receiver Info (Right) ---
+    int receiverY = y - 72;
+    gfx.DrawString("Booked From", font, XBrushes.Black, new XPoint(rightX, receiverY));
+    receiverY += 15;
+    gfx.DrawString("ITSS", boldFont, XBrushes.Black, new XPoint(rightX, receiverY));
+    receiverY += 12;
+    gfx.DrawString("Freddie Layco", font, XBrushes.Black, new XPoint(rightX, receiverY));
+    receiverY += 15;
+    gfx.DrawString("Phase 1 Block 56 Lot 32 Mary Cris Complex,", font, XBrushes.Black, new XPoint(rightX, receiverY));
+    receiverY += 12;
+    gfx.DrawString("General Trias Cavite", font, XBrushes.Black, new XPoint(rightX, receiverY));
+    receiverY += 15;
+    gfx.DrawString("09254852658", font, XBrushes.Black, new XPoint(rightX, receiverY));
+
+    y += 20;
+
+    // --- TABLE HEADER ---
+    int tableLeft = marginLeft;
+    int columnWidth = 125;
+    int rowHeight = 15;
+    int rowHeightTItle = 10;
+
+    y += 10;
+    gfx.DrawString("Inventory Code", mediumFont, XBrushes.Black, new XPoint(tableLeft, y));
+    gfx.DrawString("Description", mediumFont, XBrushes.Black, new XPoint(tableLeft + columnWidth, y));
+    gfx.DrawString("Qty", mediumFont, XBrushes.Black, new XPoint(tableLeft + 2 * columnWidth, y));
+    gfx.DrawString("Remarks", mediumFont, XBrushes.Black, new XPoint(tableLeft + 3 * columnWidth, y));
+    y += rowHeightTItle;
+    gfx.DrawLine(XPens.Black, tableLeft, y, tableLeft + 4 * columnWidth, y);
+    y += 10;
+
+    // --- DETAILS ---
+    var bookingDetails = await ApiComm.GetBDetailsAsync();
+    var filtered = bookingDetails.Where(d => d.BHeaderCode == selectedHeader.BHeaderCode).ToList();
+
+    foreach (var item in filtered)
+    {
+        gfx.DrawString(item.InventoryCode.ToString(), font, XBrushes.Black, new XPoint(tableLeft, y));
+        gfx.DrawString(item.Description ?? "N/A", font, XBrushes.Black, new XPoint(tableLeft + columnWidth, y));
+        gfx.DrawString(item.Quantity.ToString(), font, XBrushes.Black, new XPoint(tableLeft + 2 * columnWidth, y));
+        gfx.DrawString(item.Remarks ?? "-", font, XBrushes.Black, new XPoint(tableLeft + 3 * columnWidth, y));
+        y += rowHeight;
+        gfx.DrawLine(XPens.Black, tableLeft, y, tableLeft + 4 * columnWidth, y);
+        y += 10;
+    }
+
+    document.Save(stream, false);
+    stream.Position = 0;
+
+    var fileName = $"Booking for {selectedHeader.Customer}.pdf";
+    using var streamRef = new DotNetStreamReference(stream);
+    await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+}
+
+private async Task GenerateReleasePDFAsync(BookingHeader booking)
+{
+    if (booking == null)
+    {
+        Console.WriteLine("Booking is null.");
+        return;
+    }
+
+    var releases = await ApiComm.GetReleasesAsync();
+    var release = releases.FirstOrDefault(r => r.BHeaderCode == booking.BHeaderCode);
+
+    if (release == null)
+    {
+        Console.WriteLine($"Release not found for BHeaderCode: {booking.BHeaderCode}");
+        return;
+    }
+
+    // 🔧 Ensure this fetches only details for the specific ReleaseID
+    var releaseDetails = await ApiComm.GetReleaseDetailsByReleaseIDAsync(release.ReleaseID);
+    if (releaseDetails == null || !releaseDetails.Any())
+    {
+        Console.WriteLine("No release details found.");
+        return;
+    }
+
+    using var stream = new MemoryStream();
+    var document = new PdfDocument();
+    var page = document.AddPage();
+    var gfx = XGraphics.FromPdfPage(page);
+
+    var font = new XFont("Arial", 8, XFontStyle.Regular);
+    var boldFont = new XFont("Arial", 12, XFontStyle.Bold);
+    var mediumFont = new XFont("Arial", 10, XFontStyle.Bold);
+
+    int marginTop = 40, marginLeft = 40, marginRight = 40;
+    int contentWidth = (int)page.Width - marginLeft - marginRight;
+    int rightX = marginLeft + contentWidth - 200;
+    int y = marginTop;
+
+    // Logo and company info
+    string logoPath = Path.Combine(Environment.CurrentDirectory, "wwwroot/Images", "itsslogo.png");
+    if (File.Exists(logoPath))
+    {
+        var logo = XImage.FromFile(logoPath);
+        gfx.DrawImage(logo, marginLeft - 20, marginTop - 30, 75, 50);
+        gfx.DrawString("Innovative Thinker Software", boldFont, XBrushes.Black, new XPoint(marginLeft + 60, marginTop));
+        gfx.DrawString("Solutions Corporation", boldFont, XBrushes.Black, new XPoint(marginLeft + 60, marginTop + 10));
+    }
+
+    // Right header info
+    gfx.DrawString($"Release ID # RL{release.ReleaseID}", boldFont, XBrushes.Black, new XPoint(rightX, y));
+    y += 15;
+    gfx.DrawString($"Release Date: {release.ReleaseDate:MMMM d, yyyy hh:mm tt}", font, XBrushes.Black, new XPoint(rightX, y));
+    y += 15;
+    gfx.DrawString($"Return Date: {release.ReturnDate:MMMM d, yyyy hh:mm tt}", font, XBrushes.Black, new XPoint(rightX, y));
+    y += 30;
+
+    // Left-side info
+    gfx.DrawString("Receiving Person", font, XBrushes.Black, new XPoint(marginLeft, y));
+    y += 15;
+    gfx.DrawString(release.ReceivingPerson ?? "Unknown", boldFont, XBrushes.Black, new XPoint(marginLeft, y));
+    y += 12;
+    gfx.DrawString("via " + (release.ModeOfTransport ?? "N/A"), font, XBrushes.Black, new XPoint(marginLeft, y));
+    y += 15;
+    gfx.DrawString("Plate No. " + release.IdentificationPlate ?? "N/A", font, XBrushes.Black, new XPoint(marginLeft, y));
+    y += 15;
+
+    // Sender info (right)
+    int senderY = y - 58;
+    gfx.DrawString("Sender", font, XBrushes.Black, new XPoint(rightX, senderY));
+    senderY += 15;
+    gfx.DrawString("ITSS", boldFont, XBrushes.Black, new XPoint(rightX, senderY));
+    senderY += 12;
+    gfx.DrawString("Freddie Layco", font, XBrushes.Black, new XPoint(rightX, senderY));
+    senderY += 15;
+    gfx.DrawString("Phase 1 Block 56 Lot 32 Mary Cris Complex,", font, XBrushes.Black, new XPoint(rightX, senderY));
+    senderY += 12;
+    gfx.DrawString("General Trias Cavite", font, XBrushes.Black, new XPoint(rightX, senderY));
+    senderY += 15;
+    gfx.DrawString("09254852658", font, XBrushes.Black, new XPoint(rightX, senderY));
+
+    y += 40;
+
+    // Table headers
+    int tableLeft = marginLeft;
+    int columnWidth = 125;
+    int rowHeight = 15;
+
+    y += 10;
+    gfx.DrawString("Inventory Code", mediumFont, XBrushes.Black, new XPoint(tableLeft, y));
+    gfx.DrawString("Description", mediumFont, XBrushes.Black, new XPoint(tableLeft + columnWidth, y));
+    gfx.DrawString("Qty", mediumFont, XBrushes.Black, new XPoint(tableLeft + 2 * columnWidth, y));
+    gfx.DrawString("Remarks", mediumFont, XBrushes.Black, new XPoint(tableLeft + 3 * columnWidth, y));
+    y += 10;
+    gfx.DrawLine(XPens.Black, tableLeft, y, tableLeft + 4 * columnWidth, y);
+    y += 10;
+
+    // Table rows
+    foreach (var item in releaseDetails.Where(d => d.ReleaseID == release.ReleaseID))
+    {
+        gfx.DrawString(item.InventoryCode.ToString(), font, XBrushes.Black, new XPoint(tableLeft, y));
+        gfx.DrawString(item.Description ?? "N/A", font, XBrushes.Black, new XPoint(tableLeft + columnWidth, y));
+        gfx.DrawString(item.Quantity.ToString(), font, XBrushes.Black, new XPoint(tableLeft + 2 * columnWidth, y));
+        gfx.DrawString(item.Remarks ?? "Good Condition", font, XBrushes.Black, new XPoint(tableLeft + 3 * columnWidth, y));
+        y += rowHeight;
+        gfx.DrawLine(XPens.Black, tableLeft, y, tableLeft + 4 * columnWidth, y);
+        y += 10;
+    }
+
+    // Export PDF
+    document.Save(stream, false);
+    stream.Position = 0;
+
+    var fileName = $"Release Receipt for {booking.Customer}.pdf";
+    using var streamRef = new DotNetStreamReference(stream);
+    await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+}
+private async Task GenerateReturnPDFAsync(BookingHeader booking)
+{
+    if (booking == null)
+    {
+        Console.WriteLine("Booking is null.");
+        return;
+    }else{
+        Console.WriteLine($"Booking found: {booking.BHeaderCode}");
+    }
+
+    var returnData = await ApiComm.GetReturnByBHeaderCodeAsync(booking.BHeaderCode);
+    if (returnData == null)
+    {
+        Console.WriteLine($"No return found for BHeaderCode: {booking.BHeaderCode}");
+        return;
+    }
+
+    var allReturnDetails = await ApiComm.GetReturnDetailsAsync();
+    var returnDetails = allReturnDetails.Where(d => d.ReturnID == returnData.ReturnID).ToList();
+
+    if (!returnDetails.Any())
+    {
+        Console.WriteLine("No return details found.");
+        return;
+    }
+
+    // --- Begin PDF generation ---
+    using var stream = new MemoryStream();
+    var document = new PdfDocument();
+    var page = document.AddPage();
+    var gfx = XGraphics.FromPdfPage(page);
+    var font = new XFont("Arial", 8, XFontStyle.Regular);
+    var boldFont = new XFont("Arial", 12, XFontStyle.Bold);
+    var mediumFont = new XFont("Arial", 10, XFontStyle.Bold);
+
+    int marginTop = 40;
+    int marginLeft = 40;
+    int contentWidth = (int)page.Width - marginLeft * 2;
+    int rightX = marginLeft + contentWidth - 200;
+    int y = marginTop;
+
+    // --- Logo and Header ---
+    string logoPath = Path.Combine(Environment.CurrentDirectory, "wwwroot/Images", "itsslogo.png");
+    if (File.Exists(logoPath))
+    {
+        var logo = XImage.FromFile(logoPath);
+        gfx.DrawImage(logo, marginLeft - 20, marginTop - 30, 75, 50);
+        gfx.DrawString("Innovative Thinker Software", boldFont, XBrushes.Black, new XPoint(marginLeft + 60, y));
+        gfx.DrawString("Solutions Corporation", boldFont, XBrushes.Black, new XPoint(marginLeft + 60, y + 12));
+    }
+
+    // --- Top right info ---
+    gfx.DrawString($"Return ID # RT{returnData.ReturnID}", boldFont, XBrushes.Black, new XPoint(rightX, y));
+    y += 15;
+    gfx.DrawString($"Planned Return: {returnData.ReturnDate:MMMM d, yyyy hh:mm tt}", font, XBrushes.Black, new XPoint(rightX, y));
+    y += 15;
+    gfx.DrawString($"Actual Return: {returnData.ActualReturnDate:MMMM d, yyyy hh:mm tt}", font, XBrushes.Black, new XPoint(rightX, y));
+    y += 30;
+
+    // --- Sender and Receiver Section ---
+    gfx.DrawString("Sender", font, XBrushes.Black, new XPoint(marginLeft, y));
+    y += 15;
+    gfx.DrawString(booking.Customer ?? "Unknown", boldFont, XBrushes.Black, new XPoint(marginLeft, y));
+    y += 12;
+    gfx.DrawString(booking.City ?? "N/A", font, XBrushes.Black, new XPoint(marginLeft, y));
+    y += 15;
+    gfx.DrawString( booking.Address ?? "N/A", font, XBrushes.Black, new XPoint(marginLeft, y));
+    y += 15;
+
+    int senderY = y - 58;
+    gfx.DrawString("Receiver", font, XBrushes.Black, new XPoint(rightX, senderY));
+    senderY += 15;
+    gfx.DrawString("ITSS", boldFont, XBrushes.Black, new XPoint(rightX, senderY));
+    senderY += 12;
+    gfx.DrawString("Freddie Layco", font, XBrushes.Black, new XPoint(rightX, senderY));
+    senderY += 15;
+    gfx.DrawString("Phase 1 Block 56 Lot 32 Mary Cris Complex,", font, XBrushes.Black, new XPoint(rightX, senderY));
+    senderY += 12;
+    gfx.DrawString("General Trias Cavite", font, XBrushes.Black, new XPoint(rightX, senderY));
+    senderY += 15;
+    gfx.DrawString("09254852658", font, XBrushes.Black, new XPoint(rightX, senderY));
+
+    y += 40;
+
+
+    // --- Remarks ---
+    gfx.DrawString("Remarks", font, XBrushes.Black, new XPoint(marginLeft, y));
+    y += 10;
+    gfx.DrawString(returnData.Remarks ?? "-", font, XBrushes.Black, new XPoint(marginLeft, y));
+    y += 30;
+
+    // --- Table Header ---
+    int tableLeft = marginLeft;
+    int columnWidth = 125;
+    int rowHeight = 15;
+    int rowHeightTItle = 10;
+
+    gfx.DrawString("Inventory Code", mediumFont, XBrushes.Black, new XPoint(tableLeft, y));
+    gfx.DrawString("Description", mediumFont, XBrushes.Black, new XPoint(tableLeft + columnWidth, y));
+    gfx.DrawString("Qty", mediumFont, XBrushes.Black, new XPoint(tableLeft + 2 * columnWidth, y));
+    gfx.DrawString("Remarks", mediumFont, XBrushes.Black, new XPoint(tableLeft + 3 * columnWidth, y));
+    y += rowHeightTItle;
+    gfx.DrawLine(XPens.Black, tableLeft, y, tableLeft + 4 * columnWidth, y);
+    y += 10;
+
+    foreach (var item in returnDetails)
+    {
+        gfx.DrawString(item.InventoryCode.ToString(), font, XBrushes.Black, new XPoint(tableLeft, y));
+        gfx.DrawString(item.Description ?? "N/A", font, XBrushes.Black, new XPoint(tableLeft + columnWidth, y));
+        gfx.DrawString(item.Quantity.ToString(), font, XBrushes.Black, new XPoint(tableLeft + 2 * columnWidth, y));
+        gfx.DrawString(item.Remarks ?? "-", font, XBrushes.Black, new XPoint(tableLeft + 3 * columnWidth, y));
+        y += rowHeight;
+        gfx.DrawLine(XPens.Black, tableLeft, y, tableLeft + 4 * columnWidth, y);
+        y += 10;
+    }
+
+    // --- Save and download ---
+    document.Save(stream, false);
+    stream.Position = 0;
+
+    var fileName = $"Return Receipt for {booking.Customer}.pdf";
+    using var streamRef = new DotNetStreamReference(stream);
+    await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+}
+
+    private string searchTerm = "";
+    private string selectedAvailability = "All";
+
+    private IEnumerable<Inventories> FilteredInventories => inventories
+        .Where(inv =>
+            (string.IsNullOrWhiteSpace(searchTerm) ||
+            $"{inv.ItemCode}-{inv.POrderNum}-{inv.InventoryCode}".Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+            (inv.Description?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false)) &&
+        (selectedAvailability == "All" ||
+            (selectedAvailability == "Available" && inv.BookingState == "Open") ||
+            (selectedAvailability == "Not Available" && (inv.BookingState == "On-Going" || inv.BookingState == "Waiting")))
+    );
+
+
+}
+
+
+
+

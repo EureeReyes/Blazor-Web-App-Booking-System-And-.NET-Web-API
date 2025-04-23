@@ -1,0 +1,66 @@
+﻿@inherits LayoutComponentBase
+@inject IJSRuntime JS
+
+
+<script src="site.js"></script>
+<div class="page">
+<Sidebar Href=""
+    @ref="sidebar"
+    IconName="IconName.Bookmarks"
+    Title=" Booking system"
+    DataProvider="SidebarDataProvider"/>
+
+    <main>
+        <div class="bb-top-row px-4 d-flex justify-content-between">
+            <Icon Name="IconName.List" role="button" @onclick="ToggleSidebar" />
+            <a href="https://innovative-thinker.com/" target="_blank" style="color: white;">About</a>
+        </div>
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+<div id="blazor-error-ui">
+    An unhandled error has occurred.
+    <a href="" class="reload">Reload</a>
+    <a class="dismiss">🗙</a>
+</div>
+
+@code {
+    IEnumerable<NavItem>? navItems;
+    Sidebar sidebar = default!;
+
+
+    private async Task<SidebarDataProviderResult> SidebarDataProvider(SidebarDataProviderRequest request)
+    {
+        if (navItems is null)
+            navItems = GetNavItems();
+
+        return await Task.FromResult(request.ApplyTo(navItems));
+    }
+
+    private IEnumerable<NavItem> GetNavItems()
+    {
+        navItems = new List<NavItem>
+        {
+            new NavItem { Id = "1", Href = "/", IconName = IconName.LayoutWtf, Text = "Dashboard", Match = NavLinkMatch.All},
+            new NavItem {  Id = "2",Href = "/acquisition", IconName = IconName.BagCheck, Text = "Acquisition"},
+            new NavItem {  Id = "3",Href = "/inventory", IconName = IconName.Box2, Text = "Inventory"},
+            new NavItem {  Id = "4", Href = "/itemMaster", IconName = IconName.FileEarmarkText, Text = "Item Master"},
+            new NavItem {  Id = "5",Href = "/suppliermaster", IconName = IconName.Truck, Text = "Suppliers"},
+            new NavItem {  Id = "6",Href = "/booking", IconName = IconName.JournalBookmarkFill, Text = "Booking"},
+        };
+        return navItems;
+    }
+        private void ToggleSidebar() => sidebar.ToggleSidebar();
+
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("removeSidebarCollapse");
+        }
+    }
+}
