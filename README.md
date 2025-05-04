@@ -4,6 +4,9 @@ A web application built with the .NET Framework. Features include Item Master, S
 
 ## Features
 
-- Item Master creation                  • Inventory Management
-- Supplier Master creation              • Booking System
-- Receipt Generation (PDF Format)       • Sorting Feature
+- Item Master creation
+- Supplier Master creation
+- Inventory Management
+- Sorting Feature
+- Booking System
+- Receipt Generation (PDF Format)
