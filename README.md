@@ -108,7 +108,8 @@ Tablular data of Items in the Inventory, each added item will reflect their adde
 
 ## Booking System
 
-Booking details are displayed in a card. Clicking the card reveals the list of items booked by the customer.
+Booking details are displayed in a card. Clicking the card reveals the list of items booked by the customer.</br>
+*Booking state includes: Waiting, On-Going, Finished, Archived, and Canceled*
 
 ![ItemMaster Table](Screenshots/Booking%20Table.PNG)
 
@@ -139,6 +140,7 @@ Holds all of the important details for the customer identification and booked it
 - Customer Name
 - Location
 - Specific delivery address
+</br>
 *note: status is default waiting but can be set to on-going for certain circumstances.*
 
 **Booking Details**</br>
@@ -155,8 +157,22 @@ Connected to its header it holds the items that will be booked on a specific dat
 
 A pop up to quickly see if an item is available or unavailable to be booked, also has a sorting for both available and unavailable.
 
+**Unsorted Items**
+![Inquire Sort](Screenshots/Booking%20Inquire.PNG)
+
 **Available Items**
 ![Inquire Sort](Screenshots/Booking%20Inquire%20Available.PNG)
 
 **Unavailable Items**
 ![Inquire Sort](Screenshots/Booking%20Inquire%20Not%20Available.PNG)
+
+### Archive function
+
+When the booking is finished the ability to trasfer it to the Archive storage will be available Pressing the Archive button will initiate the action.
+*Booking state includes: Waiting, On-Going, Finished, Archived, and Canceled.*
+
+![Archive](Screenshots/Booking%20Table.PNG)
+
+**Archive Storage**
+![Archive](Screenshots/archive.PNG)
+
