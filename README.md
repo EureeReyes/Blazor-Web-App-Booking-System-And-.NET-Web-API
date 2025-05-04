@@ -83,11 +83,11 @@ To create Item Acquisition insert required fields
 - Item price (Amount)
 - Item Quantity (Qty)
 
-**Check Box Function**
+**Check Box Function** </br>
 *The default state (unchecked) when submit button is pressed items will be added as a bundle 
 and when checked item will be added as an individual item not belonging to a group and can be
 booked as a single item*
 
 There are a lot more of important data that is needed but from the Supplier, but for the purpose of simplicity, only the most important data is included.
 
-![ItemMaster Table](Screenshots/Supplier%20Master%20Create.PNG)
+![ItemMaster Table](Screenshots/Item%20Acquisition%20Create.PNG)
