@@ -151,8 +151,31 @@ Connected to its header it holds the items that will be booked on a specific dat
 
 ![Create Booking IMG](Screenshots/Booking%20Create.PNG)
 
+**Release Items**</br>
+Release Booked items for a "*Waiting*" Booking Appointment and turn the status into "*On-Going*".</br>
+Insert additional details for releasing of booked items.
 
-### Inquire function
+- Receiving Person
+- Mode of transport
+- Identification Plate</br>
+*(note any identification that can uniquely identify the transport)*
+
+![Release Booking IMG](Screenshots/Release%20Form.PNG)
+
+**Return Items**</br>
+Return Booked items for an "*On-Going*" Booking Appointment and turn the status into "*Finished*".</br>
+Insert additional details for Return of booked items.
+
+- Actual Return Date
+- *Return date is autofilled*
+- *Actual release date is autofilled*
+- *Customer Name is autofilled*
+- *Remarks is autofilled*</br>
+*(note: Remarks value will depend on the condition of the returned item)*
+
+![Return Booking IMG](Screenshots/Return%20Form.PNG)
+
+## Inquire function
 
 A pop up to quickly see if an item is available or unavailable to be booked, also has a sorting for both available and unavailable.
 
@@ -165,7 +188,7 @@ A pop up to quickly see if an item is available or unavailable to be booked, als
 **Unavailable Items**
 ![Inquire Sort](Screenshots/Booking%20Inquire%20Not%20Available.PNG)
 
-### Archive function
+## Archive function
 
 When the booking is finished the ability to trasfer it to the Archive storage will be available Pressing the Archive button will initiate the action.</br>
 *Booking state includes: Waiting, On-Going, Finished, Archived, and Canceled.*
@@ -175,3 +198,21 @@ When the booking is finished the ability to trasfer it to the Archive storage wi
 **Archive Storage**
 ![Archive](Screenshots/archive.PNG)
 
+## Receipt Generation
+Every transaction has a receipt generation this includes,
+- Item Acquisition
+- Booking Appointment
+- Item Releasing
+- Item Returning
+
+**Item Acquisition**
+![Receipt ITEM ACQ](Screenshots/Item%20Acquisition%20Receipt.PNG)
+
+**Booking Appointment**
+![Receipt Booking](Screenshots/Booking%20Receipt.PNG)
+
+**Releasing of Items For Booking**
+![Receipt Release](Screenshots/Release%20Form%20pdf.PNG)
+
+**Returning of Items for Booking**
+![Receipt Return](Screenshots/Return%20Form%20pdf.PNG)
