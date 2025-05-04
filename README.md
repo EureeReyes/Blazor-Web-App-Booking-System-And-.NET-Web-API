@@ -14,4 +14,4 @@ A web application built with the .NET Framework. Features include Item Master, S
 ## Item Master
 
 Tablular data of Item Master
-![ItemMaster Table](Screenshots/Item Master Table.PNG)
+![ItemMaster Table](Screenshots/Item%20Master%20Table.PNG)
