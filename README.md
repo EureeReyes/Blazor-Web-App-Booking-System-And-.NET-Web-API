@@ -1,5 +1,5 @@
 # Booking and Inventory Management System
-
+<h5>In Collaboration with Erick Jan Pedillaga</h5>
 A web application built with the .NET Framework. Features include Item Master, Supplier Master, inventory tracking, and basic booking management.
 
 ## Features
